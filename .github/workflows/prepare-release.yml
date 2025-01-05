@@ -39,8 +39,9 @@ jobs:
           ref: ${{ steps.get-tag.outputs.tag }}
           path: tailwindcss
 
-      - name: Setup workspace package.json
+      - name: Setup workspace and fix package references
         run: |
+          # Create workspace files first
           echo '{
             "private": true,
             "workspaces": [
@@ -49,27 +50,22 @@ jobs:
               "tailwindcss/packages/*",
               "tailwindcss/playgrounds/*",
               "tailwindcss/integrations"
-            ],
-            "dependencies": {
-              "@types/node": "catalog:@types/node",
-              "lightningcss": "catalog:lightningcss",
-              "vite": "catalog:vite"
-            }
+            ]
           }' > package.json
 
-      - name: Create pnpm workspace config
-        run: |
           echo 'packages:
             - "tailwindcss/crates/node"
             - "tailwindcss/crates/node/npm/*"
             - "tailwindcss/packages/*"
             - "tailwindcss/playgrounds/*"
-            - "tailwindcss/integrations"
+            - "tailwindcss/integrations"' > pnpm-workspace.yaml
 
-          catalog:
-            "@types/node": "^20.14.8"
-            "lightningcss": "^1.26.0"
-            "vite": "^6.0.0"' > pnpm-workspace.yaml
+          # Replace simple catalog references in all package.json files
+          find tailwindcss -name "package.json" -exec sed -i \
+            -e '/"@types\/node": "catalog:"/c\    "@types\/node": "^20.14.8",' \
+            -e '/"lightningcss": "catalog:"/c\    "lightningcss": "^1.26.0",' \
+            -e '/"vite": "catalog:"/c\    "vite": "^6.0.0",' \
+            {} +
 
       - uses: pnpm/action-setup@v4
         with:
@@ -92,7 +88,6 @@ jobs:
         run: |
           cd tailwindcss/packages/@tailwindcss-standalone
           mkdir -p .
-          # Install dependencies with more resilient options
           pnpm install --no-frozen-lockfile --ignore-scripts --prefer-offline || true
           pnpm add -D daisyui@beta
 
