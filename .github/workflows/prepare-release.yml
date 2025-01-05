@@ -23,9 +23,6 @@ jobs:
       tailwind_version: ${{ steps.get-tag.outputs.tag }}
       daisyui_version: ${{ steps.get-daisyui.outputs.version }}
     steps:
-      - name: Checkout FastHTML
-        uses: actions/checkout@v4
-
       - name: Get latest v4 tag
         id: get-tag
         run: |
@@ -41,26 +38,22 @@ jobs:
 
       - name: Setup workspace and fix package references
         run: |
-          # Create workspace files first
+          # Create minimal workspace files
           echo '{
             "private": true,
             "workspaces": [
               "tailwindcss/crates/node",
               "tailwindcss/crates/node/npm/*",
-              "tailwindcss/packages/*",
-              "tailwindcss/playgrounds/*",
-              "tailwindcss/integrations"
+              "tailwindcss/packages/*"
             ]
           }' > package.json
 
           echo 'packages:
             - "tailwindcss/crates/node"
             - "tailwindcss/crates/node/npm/*"
-            - "tailwindcss/packages/*"
-            - "tailwindcss/playgrounds/*"
-            - "tailwindcss/integrations"' > pnpm-workspace.yaml
+            - "tailwindcss/packages/*"' > pnpm-workspace.yaml
 
-          # Use node to safely update package.json files
+          # Replace catalog: references
           node -e '
             const fs = require("fs");
             const path = require("path");
@@ -118,26 +111,19 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Setup pnpm environment
-        run: |
-          export PNPM_HOME="/home/runner/.local/share/pnpm"
-          mkdir -p "$PNPM_HOME"
-          export PATH="$PNPM_HOME:$PATH"
-          pnpm --version
-
       - name: Setup Tailwind standalone
         run: |
-          cd tailwindcss
+          cd tailwindcss/packages/@tailwindcss-standalone
           
-          # Install dependencies
-          pnpm install --no-frozen-lockfile
-          
-          # Build Tailwind (this will create the standalone package)
-          pnpm run build
-          
-          # Now add daisyui to the standalone package
-          cd packages/@tailwindcss-standalone
+          # Add daisyui to the standalone package
           pnpm add -D daisyui@beta
+          
+          # Add daisyui to the resolver switch statement
+          sed -i '/case '\''@tailwindcss\/aspect-ratio'\''/a\    case '\''daisyui'\'':\n      return id' src/index.mjs
+          
+          # Add daisyui to the loader
+          sed -i '/return require('\''@tailwindcss\/aspect-ratio'\'')/a\    } else if (id.endsWith('\''daisyui'\'')) {\n      return require('\''daisyui'\'')' src/index.mjs
+          
 
       - name: Get DaisyUI version
         id: get-daisyui
