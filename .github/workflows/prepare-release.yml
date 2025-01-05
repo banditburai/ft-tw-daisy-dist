@@ -5,7 +5,8 @@ on:
     inputs:
       version:
         description: 'Release version'
-        required: true
+        required: false
+        default: 'next'
         type: string
 
 permissions:
@@ -269,17 +270,10 @@ jobs:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
-      - name: Strip debug symbols
+      - name: Strip debug symbols # https://github.com/rust-lang/rust/issues/46034
         if: ${{ matrix.strip }}
-        run: |
-          # Use find to check for .node files more reliably
-          if find "${{ env.OXIDE_LOCATION }}" -name "*.node" -type f | grep -q .; then
-            ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
-          else
-            echo "No .node files found to strip"
-            exit 1
-          fi
-
+        run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
+  
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
