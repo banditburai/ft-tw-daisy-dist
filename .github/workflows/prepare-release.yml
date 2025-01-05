@@ -115,7 +115,11 @@ jobs:
         run: |
           cd tailwindcss/packages/@tailwindcss-standalone
           
+          # Debug - check if patches exist
+          ls -la ../../patches/
+          
           # Add daisyui to the standalone package
+          pnpm install --no-frozen-lockfile  # Try with full install to apply patches
           pnpm add -D daisyui@beta
           
           # Add daisyui to the resolver switch statement
