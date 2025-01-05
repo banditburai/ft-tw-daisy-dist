@@ -208,14 +208,22 @@ jobs:
           pnpm install --ignore-scripts --filter=!./playgrounds/* --no-frozen-lockfile
 
       - name: Build release
-        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
+        run: |
+          mkdir -p ./crates/node
+          pnpm run --filter ${{ env.OXIDE_LOCATION }} build
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
       - name: Strip debug symbols
         if: ${{ matrix.strip }}
-        run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
+        run: |
+          if [ -f "${{ env.OXIDE_LOCATION }}/*.node" ]; then
+            ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
+          else
+            echo "No .node files found to strip"
+            exit 1
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
