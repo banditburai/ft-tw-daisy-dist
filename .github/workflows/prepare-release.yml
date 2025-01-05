@@ -127,6 +127,14 @@ jobs:
 
       - name: Setup Tailwind standalone
         run: |
+          # Debug: Check what we got from the clone
+          echo "Current directory: $(pwd)"
+          ls -la
+          echo "Tailwind directory contents:"
+          ls -la tailwindcss/
+          echo "Packages directory contents:"
+          ls -la tailwindcss/packages/
+          
           # First handle patches at the root level
           cd tailwindcss
           if [ -d "../patches" ]; then
@@ -134,12 +142,10 @@ jobs:
             cp -r ../patches/* patches/
           fi
           
-          # Create standalone directory
-          cd packages/@tailwindcss-standalone
-          mkdir -p .
+          # Create the standalone directory
+          mkdir -p packages/@tailwindcss-standalone
           
           # Install dependencies at root level where patches are configured
-          cd ../../..
           pnpm install --no-frozen-lockfile --prefer-offline
           
           # Now add daisyui to the standalone package
