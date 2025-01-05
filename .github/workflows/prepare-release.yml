@@ -7,6 +7,7 @@ on:
         description: 'Release version'
         required: true
         type: string
+
 permissions:
   contents: read
 
@@ -40,15 +41,13 @@ jobs:
           ref: ${{ steps.get-tag.outputs.tag }}
           path: tailwind
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
+      - uses: pnpm/action-setup@v4
 
-      - name: Setup Node
+      - name: Use Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Setup Tailwind standalone
         working-directory: tailwind
@@ -107,6 +106,7 @@ jobs:
             strip: strip -x
           - os: macos-latest
             target: aarch64-apple-darwin
+            page-size: 14
             strip: strip -x
           # Android
           - os: ubuntu-latest
@@ -158,7 +158,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      # Cargo already skips downloading dependencies if they already exist
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -170,7 +169,6 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      # Cache the `oxide` Rust build
       - name: Cache oxide build
         uses: actions/cache@v4
         with:
@@ -188,8 +186,7 @@ jobs:
 
       - name: Install Rust (Stable)
         if: ${{ matrix.download }}
-        run: |
-          rustup default stable
+        run: rustup default stable
 
       - name: Setup rust target
         run: rustup target add ${{ matrix.target }}
@@ -203,7 +200,7 @@ jobs:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
-      - name: Strip debug symbols # https://github.com/rust-lang/rust/issues/46034
+      - name: Strip debug symbols
         if: ${{ matrix.strip }}
         run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
 
@@ -218,8 +215,7 @@ jobs:
     timeout-minutes: 15
     name: Build and release Tailwind CSS
     permissions:
-      contents: write # for softprops/action-gh-release to create GitHub release
-      # https://docs.npmjs.com/generating-provenance-statements#publishing-packages-with-provenance-via-github-actions      
+      contents: write
     needs:
       - build
       - prepare
@@ -233,9 +229,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'          
+          cache: 'pnpm'
 
-      # Cargo already skips downloading dependencies if they already exist
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -247,7 +242,6 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      # Cache the `oxide` Rust build
       - name: Cache oxide build
         uses: actions/cache@v4
         with:
@@ -302,7 +296,6 @@ jobs:
           cp Makefile fasthtml-template/
           cp main.py fasthtml-template/
           zip -r fasthtml-template.zip fasthtml-template/
-
 
       - name: Release
         uses: softprops/action-gh-release@v2
