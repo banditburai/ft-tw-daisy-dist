@@ -5,8 +5,7 @@ on:
     inputs:
       version:
         description: 'Release version'
-        required: false
-        default: 'next'
+        required: true        
         type: string
 
 permissions:
