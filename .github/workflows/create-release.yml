@@ -1,0 +1,38 @@
+name: Create Release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+        default: '0.1.0-beta.1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run prepare-release script
+        run: |
+          chmod +x prepare-release.sh
+          ./prepare-release.sh
+      
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create v${{ github.event.inputs.version }} \
+            --title "Release v${{ github.event.inputs.version }}" \
+            --generate-notes \
+            release/tailwindcss-linux-arm64 \
+            release/tailwindcss-linux-x64 \
+            release/tailwindcss-macos-arm64 \
+            release/tailwindcss-macos-x64 \
+            release/tailwindcss-windows-x64.exe \
+            release/linux-arm64-fasthtml.zip \
+            release/linux-x64-fasthtml.zip \
+            release/macos-arm64-fasthtml.zip \
+            release/macos-x64-fasthtml.zip \
+            release/windows-x64.exe-fasthtml.zip \
+            release/sha256sums.txt

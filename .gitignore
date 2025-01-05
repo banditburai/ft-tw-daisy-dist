@@ -1,0 +1,13 @@
+# Build artifacts
+release/
+*.zip
+dist/
+node_modules/
+
+# Maintenance scripts
+prepare-release.sh
+scripts/
+
+# Local testing
+styles/output.css
+tailwindcss
