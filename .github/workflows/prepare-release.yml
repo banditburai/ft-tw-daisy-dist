@@ -54,10 +54,19 @@ jobs:
         working-directory: tailwind/packages/@tailwindcss-standalone
         run: |
           mkdir -p .
-          if [ ! -f "package.json" ]; then
-            echo '{"private": true, "dependencies": {"@types/node": "^20.14.8", "lightningcss": "^1.26.0", "vite": "^6.0.0"}}' > package.json
-            pnpm init
-          fi
+          echo '{
+            "private": true,
+            "workspaces": [
+              "crates/node",
+              "crates/node/npm/*",
+              "packages/*"
+            ],
+            "dependencies": {
+              "@types/node": "^20.14.8",
+              "lightningcss": "^1.26.0",
+              "vite": "^6.0.0"
+            }
+          }' > package.json
           pnpm install
           pnpm add -D daisyui@beta
 
