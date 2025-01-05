@@ -292,7 +292,10 @@ jobs:
         run: rustup default stable
 
       - name: Setup rust target
-        run: rustup target add ${{ matrix.target }}
+        run: |
+          rustup default stable
+          rustup target add ${{ matrix.target }}
+          rustup show
 
       - name: Install dependencies
         run: |
