@@ -208,20 +208,33 @@ jobs:
           pnpm install --ignore-scripts --filter=!./playgrounds/* --no-frozen-lockfile
 
       - name: Build release
-        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
+        working-directory: tailwind
+        run: |
+          pnpm run --filter ${{ env.OXIDE_LOCATION }} build
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
       - name: Strip debug symbols
         if: ${{ matrix.strip }}
-        run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
+        run: |
+          shopt -s nullglob  # Handle case where no files match pattern
+          files=(tailwind/${{ env.OXIDE_LOCATION }}/*.node)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No .node files found to strip in tailwind/${{ env.OXIDE_LOCATION }}"
+            ls -la tailwind/${{ env.OXIDE_LOCATION }}
+            exit 1
+          fi
+          for file in "${files[@]}"; do
+            echo "Stripping $file"
+            ${{ matrix.strip }} "$file"
+          done
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.target }}
-          path: ${{ env.OXIDE_LOCATION }}/*.node
+          path: tailwind/${{ env.OXIDE_LOCATION }}/*.node
 
   release:
     runs-on: macos-14
