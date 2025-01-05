@@ -123,10 +123,12 @@ jobs:
           auto-install-peers=true
           node-linker=hoisted" > .npmrc
           
-          # Add patchedDependencies to package.json
+          # Add lightningcss dependency and patchedDependencies to package.json
           node -e '
             const fs = require("fs");
             const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            pkg.dependencies = pkg.dependencies || {};
+            pkg.dependencies["lightningcss"] = "1.26.0";
             pkg.patchedDependencies = {
               "lightningcss": "1.26.0"
             };
