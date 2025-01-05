@@ -3,6 +3,7 @@ release/
 *.zip
 dist/
 node_modules/
+.DS_Store
 
 # Maintenance scripts
 prepare-release.sh

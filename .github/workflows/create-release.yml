@@ -25,14 +25,10 @@ jobs:
           gh release create v${{ github.event.inputs.version }} \
             --title "Release v${{ github.event.inputs.version }}" \
             --generate-notes \
+            release/fasthtml-template.zip \
             release/tailwindcss-linux-arm64 \
             release/tailwindcss-linux-x64 \
             release/tailwindcss-macos-arm64 \
             release/tailwindcss-macos-x64 \
             release/tailwindcss-windows-x64.exe \
-            release/linux-arm64-fasthtml.zip \
-            release/linux-x64-fasthtml.zip \
-            release/macos-arm64-fasthtml.zip \
-            release/macos-x64-fasthtml.zip \
-            release/windows-x64.exe-fasthtml.zip \
             release/sha256sums.txt
