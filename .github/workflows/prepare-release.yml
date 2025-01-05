@@ -50,7 +50,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
       - name: Setup pnpm environment
         run: |
@@ -207,7 +206,7 @@ jobs:
         run: |
           export PNPM_HOME="/home/runner/.local/share/pnpm"
           export PATH="$PNPM_HOME:$PATH"
-          pnpm install --ignore-scripts --filter=!./playgrounds/*
+          pnpm install --ignore-scripts --filter=!./playgrounds/* --no-frozen-lockfile
 
       - name: Build release
         run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
@@ -244,7 +243,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          # Remove the pnpm cache since we don't have a lock file
+          # cache: 'pnpm'
 
       - name: Cache cargo
         uses: actions/cache@v4
