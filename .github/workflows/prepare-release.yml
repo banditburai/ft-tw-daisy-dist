@@ -129,11 +129,29 @@ jobs:
         run: |
           cd tailwindcss/packages/@tailwindcss-standalone
           mkdir -p .
-          # Copy the patches directory if it exists
+          # Ensure patches directory exists and copy patches
+          mkdir -p ../../patches
           if [ -d "../../../patches" ]; then
-            cp -r ../../../patches ../../
+            cp -r ../../../patches/* ../../patches/
           fi
-          pnpm install --no-frozen-lockfile --ignore-scripts --prefer-offline || true
+          # Create package.json if it doesn't exist
+          if [ ! -f "package.json" ]; then
+            echo '{
+              "pnpm": {
+                "patchedDependencies": {
+                  "lightningcss@1.26.0": "patches/lightningcss@1.26.0.patch",
+                  "@parcel/watcher@2.5.0": "patches/@parcel__watcher@2.5.0.patch"
+                }
+              }
+            }' > package.json
+          fi
+          # Install dependencies with patches
+          PNPM_VERSION=$(pnpm --version)
+          if [[ "$PNPM_VERSION" == "8."* ]]; then
+            pnpm install --no-frozen-lockfile --prefer-offline
+          else
+            pnpm install --no-frozen-lockfile --prefer-offline --ignore-pnpm-patch-errors
+          fi
           pnpm add -D daisyui@beta
 
       - name: Modify standalone index
