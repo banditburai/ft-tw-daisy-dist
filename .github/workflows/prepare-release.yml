@@ -204,8 +204,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          export PNPM_HOME="/home/runner/.local/share/pnpm"
-          export PATH="$PNPM_HOME:$PATH"
+          which pnpm || npm install -g pnpm
           pnpm install --ignore-scripts --filter=!./playgrounds/* --no-frozen-lockfile
 
       - name: Build release
