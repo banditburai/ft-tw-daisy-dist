@@ -55,9 +55,10 @@ jobs:
         run: |
           mkdir -p .
           if [ ! -f "package.json" ]; then
-            echo '{"private": true}' > package.json
+            echo '{"private": true, "dependencies": {"@types/node": "^20.14.8", "lightningcss": "^1.26.0", "vite": "^6.0.0"}}' > package.json
             pnpm init
           fi
+          pnpm install
           pnpm add -D daisyui@beta
 
       - name: Modify standalone index
