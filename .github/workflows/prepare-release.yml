@@ -50,9 +50,14 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Add DaisyUI
+      - name: Setup Tailwind standalone
         working-directory: tailwind/packages/@tailwindcss-standalone
         run: |
+          mkdir -p .
+          if [ ! -f "package.json" ]; then
+            echo '{"private": true}' > package.json
+          fi
+          pnpm init
           pnpm add -D daisyui@beta
 
       - name: Modify standalone index
