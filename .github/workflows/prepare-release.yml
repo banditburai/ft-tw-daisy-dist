@@ -161,6 +161,12 @@ jobs:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
+      - name: Upload Tailwind directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: tailwind-prepared
+          path: tailwindcss/
+
   build:
     needs: prepare
     strategy:
@@ -223,6 +229,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Download prepared Tailwind
+        uses: actions/download-artifact@v4
+        with:
+          name: tailwind-prepared
+          path: tailwindcss
+
       - uses: pnpm/action-setup@v4
         if: ${{ matrix.container }}
         with:
@@ -271,8 +283,9 @@ jobs:
           which pnpm || npm install -g pnpm
           pnpm install --ignore-scripts --filter=!./playgrounds/* --no-frozen-lockfile
 
-      - name: Build release
-        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
+      - name: Build crates/node release
+        working-directory: tailwindcss/crates/node
+        run: pnpm run build
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
