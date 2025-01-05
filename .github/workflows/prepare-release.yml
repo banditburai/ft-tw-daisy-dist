@@ -123,6 +123,16 @@ jobs:
           auto-install-peers=true
           node-linker=hoisted" > .npmrc
           
+          # Add patchedDependencies to package.json
+          node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            pkg.patchedDependencies = {
+              "lightningcss": "1.26.0"
+            };
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+          '
+          
           # Add daisyui to the standalone package
           pnpm install --no-frozen-lockfile  # Try with full install to apply patches
           pnpm add -D daisyui@beta
