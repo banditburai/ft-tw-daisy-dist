@@ -118,8 +118,10 @@ jobs:
           # Debug - check if patches exist
           ls -la ../../patches/
           
-          # Copy root .npmrc to current directory
-          cp ../../../.npmrc .
+          # Create .npmrc with required settings
+          echo "enable-pre-post-scripts=true
+          auto-install-peers=true
+          node-linker=hoisted" > .npmrc
           
           # Add daisyui to the standalone package
           pnpm install --no-frozen-lockfile  # Try with full install to apply patches
