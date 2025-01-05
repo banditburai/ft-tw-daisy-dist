@@ -127,29 +127,17 @@ jobs:
 
       - name: Setup Tailwind standalone
         run: |
-          # Debug: Check patches and dependencies
-          echo "Checking patches in cloned repo:"
-          ls -la tailwindcss/patches/
-          
-          echo "Checking package.json dependencies:"
-          cat tailwindcss/package.json | grep lightningcss
-          
           cd tailwindcss
           
-          # Try installing with --force to bypass patch checks
-          pnpm install --no-frozen-lockfile --force
+          # Install dependencies
+          pnpm install --no-frozen-lockfile
+          
+          # Build Tailwind (this will create the standalone package)
+          pnpm run build
           
           # Now add daisyui to the standalone package
           cd packages/@tailwindcss-standalone
           pnpm add -D daisyui@beta
-
-      - name: Modify standalone index
-        run: |
-          cd tailwindcss
-          # Add daisyui to switch case
-          sed -i '/case "@tailwindcss\/aspect-ratio":/a \ \ \ \ case "daisyui":\n \ \ \ \ \ \ return id' packages/@tailwindcss-standalone/src/index.ts
-          # Add daisyui to load function
-          sed -i '/return require("@tailwindcss\/aspect-ratio")/a \ \ } else if (id.endsWith("daisyui")) {\n \ \ \ \ return require("daisyui")' packages/@tailwindcss-standalone/src/index.ts
 
       - name: Get DaisyUI version
         id: get-daisyui
