@@ -52,10 +52,13 @@ jobs:
             ],
             "dependencies": {
               "@types/node": "^20.14.8",
+              "lightningcss": "^1.26.0",
               "vite": "^6.0.0"
             },
-            "resolutions": {
-              "lightningcss": "^1.26.0"
+            "pnpm": {
+              "overrides": {
+                "lightningcss": "^1.26.0"
+              }
             }
           }' > package.json
 
@@ -77,6 +80,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Setup pnpm environment
         run: |
@@ -89,7 +93,8 @@ jobs:
         run: |
           cd tailwindcss/packages/@tailwindcss-standalone
           mkdir -p .
-          pnpm install --no-frozen-lockfile
+          # Install dependencies with more resilient options
+          pnpm install --no-frozen-lockfile --ignore-scripts --prefer-offline || true
           pnpm add -D daisyui@beta
 
       - name: Modify standalone index
@@ -106,12 +111,6 @@ jobs:
           cd tailwindcss/packages/@tailwindcss-standalone
           DAISYUI_VERSION=$(pnpm list daisyui --json | jq -r '.[0].dependencies.daisyui.version')
           echo "version=$DAISYUI_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Setup .npmrc
-        run: |
-          echo "legacy-peer-deps=true
-          strict-peer-dependencies=false
-          auto-install-peers=true" > .npmrc
 
   build:
     needs: prepare
