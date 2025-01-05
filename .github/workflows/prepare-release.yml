@@ -129,7 +129,12 @@ jobs:
         run: |
           cd tailwindcss/packages/@tailwindcss-standalone
           mkdir -p .
-          pnpm install --no-frozen-lockfile --ignore-scripts --prefer-offline || true
+          # Copy the patches directory if it exists
+          if [ -d "../../../patches" ]; then
+            cp -r ../../../patches ../../
+          fi
+          # Install with patches allowed
+          pnpm install --no-frozen-lockfile --ignore-scripts --prefer-offline --ignore-pnpm-patch-errors || true
           pnpm add -D daisyui@beta
 
       - name: Modify standalone index
