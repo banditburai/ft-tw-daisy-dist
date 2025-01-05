@@ -36,8 +36,7 @@ setup:
 	@echo "Setting up Tailwind..."
 	@if [ ! -f "tailwindcss" ]; then \
 		echo "Downloading Tailwind binary..."; \
-		LATEST_URL=$$(curl -s https://api.github.com/repos/banditburai/ft-tw-daisy-dist/releases/latest | grep "browser_download_url.*$(BINARY_NAME)" | cut -d '"' -f 4); \
-		curl -sLO $$LATEST_URL; \
+		curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/latest/download/$(BINARY_NAME); \
 		mv $(BINARY_NAME) tailwindcss; \
 	fi
 	@chmod +x tailwindcss
