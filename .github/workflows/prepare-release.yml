@@ -127,31 +127,23 @@ jobs:
 
       - name: Setup Tailwind standalone
         run: |
-          cd tailwindcss/packages/@tailwindcss-standalone
+          # First handle patches at the root level
+          cd tailwindcss
+          if [ -d "../patches" ]; then
+            mkdir -p patches
+            cp -r ../patches/* patches/
+          fi
+          
+          # Create standalone directory
+          cd packages/@tailwindcss-standalone
           mkdir -p .
-          # Ensure patches directory exists and copy patches
-          mkdir -p ../../patches
-          if [ -d "../../../patches" ]; then
-            cp -r ../../../patches/* ../../patches/
-          fi
-          # Create package.json if it doesn't exist
-          if [ ! -f "package.json" ]; then
-            echo '{
-              "pnpm": {
-                "patchedDependencies": {
-                  "lightningcss@1.26.0": "patches/lightningcss@1.26.0.patch",
-                  "@parcel/watcher@2.5.0": "patches/@parcel__watcher@2.5.0.patch"
-                }
-              }
-            }' > package.json
-          fi
-          # Install dependencies with patches
-          PNPM_VERSION=$(pnpm --version)
-          if [[ "$PNPM_VERSION" == "8."* ]]; then
-            pnpm install --no-frozen-lockfile --prefer-offline
-          else
-            pnpm install --no-frozen-lockfile --prefer-offline --ignore-pnpm-patch-errors
-          fi
+          
+          # Install dependencies at root level where patches are configured
+          cd ../../..
+          pnpm install --no-frozen-lockfile --prefer-offline
+          
+          # Now add daisyui to the standalone package
+          cd packages/@tailwindcss-standalone
           pnpm add -D daisyui@beta
 
       - name: Modify standalone index
