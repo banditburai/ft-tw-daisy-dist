@@ -133,8 +133,7 @@ jobs:
           if [ -d "../../../patches" ]; then
             cp -r ../../../patches ../../
           fi
-          # Install with patches allowed
-          pnpm install --no-frozen-lockfile --ignore-scripts --prefer-offline --ignore-pnpm-patch-errors || true
+          pnpm install --no-frozen-lockfile --ignore-scripts --prefer-offline || true
           pnpm add -D daisyui@beta
 
       - name: Modify standalone index
