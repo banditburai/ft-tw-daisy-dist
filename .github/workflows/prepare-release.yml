@@ -210,6 +210,12 @@ jobs:
       - name: Build release
         run: |
           mkdir -p ./crates/node
+          ls -la
+          ls -la ./crates
+          ls -la ./crates/node || true
+          echo "Current directory: $PWD"
+          echo "Looking for package.json files:"
+          find . -name "package.json"
           pnpm run --filter ${{ env.OXIDE_LOCATION }} build
         env:
           RUST_TARGET: ${{ matrix.target }}
