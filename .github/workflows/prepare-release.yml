@@ -44,6 +44,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 8
+          run_install: false
 
       - name: Use Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
@@ -52,7 +53,8 @@ jobs:
 
       - name: Setup pnpm environment
         run: |
-          echo "$HOME/setup-pnpm/node_modules/.bin" >> $GITHUB_PATH
+          export PNPM_HOME="/Users/runner/setup-pnpm/node_modules/.bin"
+          export PATH="$PNPM_HOME:$PATH"
           pnpm --version
 
       - name: Setup Tailwind standalone
@@ -200,7 +202,10 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: Install dependencies
-        run: pnpm install --ignore-scripts --filter=!./playgrounds/*
+        run: |
+          export PNPM_HOME="/Users/runner/setup-pnpm/node_modules/.bin"
+          export PATH="$PNPM_HOME:$PATH"
+          pnpm install --ignore-scripts --filter=!./playgrounds/*
 
       - name: Build release
         run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
