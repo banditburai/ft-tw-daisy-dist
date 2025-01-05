@@ -50,11 +50,6 @@ jobs:
               "tailwindcss/playgrounds/*",
               "tailwindcss/integrations"
             ],
-            "resolutions": {
-              "lightningcss": "^1.26.0",
-              "@types/node": "^20.14.8",
-              "vite": "^6.0.0"
-            },
             "dependencies": {
               "@types/node": "^20.14.8",
               "lightningcss": "^1.26.0",
@@ -69,12 +64,7 @@ jobs:
             - "tailwindcss/crates/node/npm/*"
             - "tailwindcss/packages/*"
             - "tailwindcss/playgrounds/*"
-            - "tailwindcss/integrations"
-
-          catalog:
-            "@types/node": ^20.14.8
-            lightningcss: ^1.26.0
-            vite: ^6.0.0' > pnpm-workspace.yaml
+            - "tailwindcss/integrations"' > pnpm-workspace.yaml
 
       - uses: pnpm/action-setup@v4
         with:
