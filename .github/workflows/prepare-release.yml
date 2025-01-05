@@ -37,21 +37,22 @@ jobs:
           path: tailwindcss
 
       - name: Setup workspace and fix package references
+        working-directory: tailwindcss
         run: |
           # Create minimal workspace files
           echo '{
             "private": true,
             "workspaces": [
-              "tailwindcss/crates/node",
-              "tailwindcss/crates/node/npm/*",
-              "tailwindcss/packages/*"
+              "crates/node",
+              "crates/node/npm/*",
+              "packages/*"
             ]
           }' > package.json
 
           echo 'packages:
-            - "tailwindcss/crates/node"
-            - "tailwindcss/crates/node/npm/*"
-            - "tailwindcss/packages/*"' > pnpm-workspace.yaml
+            - "crates/node"
+            - "crates/node/npm/*"
+            - "packages/*"' > pnpm-workspace.yaml
 
           # Replace catalog: references
           node -e '
@@ -73,7 +74,7 @@ jobs:
               return results;
             }
 
-            const packageFiles = findPackageJsonFiles("tailwindcss");
+            const packageFiles = findPackageJsonFiles(".");
             const replacements = {
               "@types/node": "^20.14.8",
               "lightningcss": "^1.26.0",
@@ -112,12 +113,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup Tailwind standalone
+        working-directory: tailwindcss/packages/@tailwindcss-standalone
         run: |
-          cd tailwindcss/packages/@tailwindcss-standalone
-          
-          # Debug - check if patches exist
-          ls -la ../../patches/
-          
           # Create .npmrc with required settings
           echo "enable-pre-post-scripts=true
           auto-install-peers=true
@@ -148,10 +145,21 @@ jobs:
 
       - name: Get DaisyUI version
         id: get-daisyui
+        working-directory: tailwindcss/packages/@tailwindcss-standalone
         run: |
-          cd tailwindcss/packages/@tailwindcss-standalone
           DAISYUI_VERSION=$(pnpm list daisyui --json | jq -r '.[0].dependencies.daisyui.version')
           echo "version=$DAISYUI_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Install Tailwind dependencies
+        working-directory: tailwindcss
+        run: pnpm install --ignore-scripts --filter=!./playgrounds/*
+
+      - name: Build Tailwind node modules
+        working-directory: tailwindcss/crates/node
+        run: pnpm run build
+        env:
+          RUST_TARGET: ${{ matrix.target }}
+          JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
   build:
     needs: prepare
