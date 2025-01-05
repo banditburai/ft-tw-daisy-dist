@@ -8,22 +8,34 @@ Pre-built distribution of [Tailwind CSS](https://github.com/tailwindlabs/tailwin
 
 > ⚠️ **Beta Notice**: This package uses beta versions of both Tailwind CSS and DaisyUI. While functional, APIs and features may change.
 
-## Quick Start
+## Installation
+
+### Option 1: Complete Template (Recommended)
+
+1. Download and extract the template package:
+```bash
+curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/latest/download/fasthtml-template.zip
+unzip fasthtml-template.zip
+cd fasthtml-template
+```
+
+2. Run `make` to automatically download the appropriate binary and start your project
+
+### Option 2: Manual Setup
 
 1. Download the binary for your platform:
-
 ```bash
 # For macOS ARM (M1/M2)
-curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/download/v0.1.0-beta.1/tailwindcss-macos-arm64
+curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/latest/download/tailwindcss-macos-arm64
 
 # For macOS Intel
-curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/download/v0.1.0-beta.1/tailwindcss-macos-x64
+curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/latest/download/tailwindcss-macos-x64
 
 # For Linux x64
-curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/download/v0.1.0-beta.1/tailwindcss-linux-x64
+curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/latest/download/tailwindcss-linux-x64
 
 # For Windows x64
-curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/download/v0.1.0-beta.1/tailwindcss-windows-x64.exe
+curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/latest/download/tailwindcss-windows-x64.exe
 ```
 
 2. Make the binary executable (Unix systems):
@@ -31,8 +43,6 @@ curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/download/v0.1
 chmod +x tailwindcss-*
 mv tailwindcss-* tailwindcss
 ```
-
-3. Run `make` to start your FastHTML project
 
 ## Usage
 
@@ -59,12 +69,8 @@ make dev
 ## Demo
 
 The included `main.py` provides a minimal template to get started:
-- Basic FastHTML setup with Tailwind CSS
-- Dark theme enabled by default
-- Responsive layout structure
-- Ready for DaisyUI components
-
-You can build upon this template by adding your own components and styles.
+- Basic FastHTML setup with Tailwind CSS and DaisyUI
+- You can build upon this template by adding your own components and styles.
 
 ## Directory Structure
 ```text
