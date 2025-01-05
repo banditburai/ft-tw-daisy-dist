@@ -60,12 +60,53 @@ jobs:
             - "tailwindcss/playgrounds/*"
             - "tailwindcss/integrations"' > pnpm-workspace.yaml
 
-          # Replace simple catalog references in all package.json files
-          find tailwindcss -name "package.json" -exec sed -i \
-            -e '/"@types\/node": "catalog:"/c\    "@types\/node": "^20.14.8",' \
-            -e '/"lightningcss": "catalog:"/c\    "lightningcss": "^1.26.0",' \
-            -e '/"vite": "catalog:"/c\    "vite": "^6.0.0",' \
-            {} +
+          # Use node to safely update package.json files
+          node -e '
+            const fs = require("fs");
+            const path = require("path");
+            
+            function findPackageJsonFiles(dir) {
+              let results = [];
+              const files = fs.readdirSync(dir);
+              for (const file of files) {
+                const filePath = path.join(dir, file);
+                const stat = fs.statSync(filePath);
+                if (stat.isDirectory()) {
+                  results = results.concat(findPackageJsonFiles(filePath));
+                } else if (file === "package.json") {
+                  results.push(filePath);
+                }
+              }
+              return results;
+            }
+
+            const packageFiles = findPackageJsonFiles("tailwindcss");
+            const replacements = {
+              "@types/node": "^20.14.8",
+              "lightningcss": "^1.26.0",
+              "vite": "^6.0.0"
+            };
+
+            for (const file of packageFiles) {
+              const content = JSON.parse(fs.readFileSync(file, "utf8"));
+              let modified = false;
+              
+              ["dependencies", "devDependencies", "peerDependencies"].forEach(depType => {
+                if (content[depType]) {
+                  Object.entries(content[depType]).forEach(([pkg, version]) => {
+                    if (version === "catalog:" && replacements[pkg]) {
+                      content[depType][pkg] = replacements[pkg];
+                      modified = true;
+                    }
+                  });
+                }
+              });
+              
+              if (modified) {
+                fs.writeFileSync(file, JSON.stringify(content, null, 2) + "\n");
+              }
+            }
+          '
 
       - uses: pnpm/action-setup@v4
         with:
