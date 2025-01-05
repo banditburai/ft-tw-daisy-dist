@@ -50,6 +50,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Setup pnpm environment
+        run: |
+          echo "$HOME/setup-pnpm/node_modules/.bin" >> $GITHUB_PATH
+          pnpm --version
+
       - name: Setup Tailwind standalone
         working-directory: tailwind
         run: |
