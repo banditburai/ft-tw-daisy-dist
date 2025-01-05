@@ -25,8 +25,6 @@ jobs:
     steps:
       - name: Checkout FastHTML
         uses: actions/checkout@v4
-        with:
-          path: fasthtml
 
       - name: Get latest v4 tag
         id: get-tag
@@ -41,25 +39,7 @@ jobs:
           ref: ${{ steps.get-tag.outputs.tag }}
           path: tailwind
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 8
-          run_install: false
-
-      - name: Use Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup pnpm environment
-        run: |
-          export PNPM_HOME="/home/runner/.local/share/pnpm"
-          mkdir -p "$PNPM_HOME"
-          export PATH="$PNPM_HOME:$PATH"
-          pnpm --version
-
-      - name: Setup Tailwind standalone
-        working-directory: tailwind
+      - name: Setup workspace package.json
         run: |
           echo '{
             "private": true,
@@ -79,14 +59,34 @@ jobs:
               "vite": "^6.0.0"
             }
           }' > package.json
-          cd packages/@tailwindcss-standalone
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+          run_install: false
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm environment
+        run: |
+          export PNPM_HOME="/home/runner/.local/share/pnpm"
+          mkdir -p "$PNPM_HOME"
+          export PATH="$PNPM_HOME:$PATH"
+          pnpm --version
+
+      - name: Setup Tailwind standalone
+        run: |
+          cd tailwind/packages/@tailwindcss-standalone
           mkdir -p .
           pnpm install --no-frozen-lockfile
           pnpm add -D daisyui@beta
 
       - name: Modify standalone index
-        working-directory: tailwind
         run: |
+          cd tailwind
           # Add daisyui to switch case
           sed -i '/case "@tailwindcss\/aspect-ratio":/a \ \ \ \ case "daisyui":\n \ \ \ \ \ \ return id' packages/@tailwindcss-standalone/src/index.ts
           # Add daisyui to load function
@@ -94,8 +94,8 @@ jobs:
 
       - name: Get DaisyUI version
         id: get-daisyui
-        working-directory: tailwind/packages/@tailwindcss-standalone
         run: |
+          cd tailwind/packages/@tailwindcss-standalone
           DAISYUI_VERSION=$(pnpm list daisyui --json | jq -r '.[0].dependencies.daisyui.version')
           echo "version=$DAISYUI_VERSION" >> $GITHUB_OUTPUT
 
@@ -158,7 +158,9 @@ jobs:
     container: ${{ matrix.container }}
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         if: ${{ matrix.container }}
         with:
@@ -208,9 +210,7 @@ jobs:
           pnpm install --ignore-scripts --filter=!./playgrounds/* --no-frozen-lockfile
 
       - name: Build release
-        working-directory: tailwind
-        run: |
-          pnpm run --filter ${{ env.OXIDE_LOCATION }} build
+        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
@@ -218,23 +218,19 @@ jobs:
       - name: Strip debug symbols
         if: ${{ matrix.strip }}
         run: |
-          shopt -s nullglob  # Handle case where no files match pattern
-          files=(tailwind/${{ env.OXIDE_LOCATION }}/*.node)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "No .node files found to strip in tailwind/${{ env.OXIDE_LOCATION }}"
-            ls -la tailwind/${{ env.OXIDE_LOCATION }}
+          # Use find to check for .node files more reliably
+          if find "${{ env.OXIDE_LOCATION }}" -name "*.node" -type f | grep -q .; then
+            ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
+          else
+            echo "No .node files found to strip"
             exit 1
           fi
-          for file in "${files[@]}"; do
-            echo "Stripping $file"
-            ${{ matrix.strip }} "$file"
-          done
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.target }}
-          path: tailwind/${{ env.OXIDE_LOCATION }}/*.node
+          path: ${{ env.OXIDE_LOCATION }}/*.node
 
   release:
     runs-on: macos-14
@@ -255,8 +251,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          # Remove the pnpm cache since we don't have a lock file
-          # cache: 'pnpm'
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -303,19 +297,22 @@ jobs:
           cp bindings-x86_64-unknown-linux-musl/* ./npm/linux-x64-musl/
 
       - name: Build Tailwind CSS
-        run: pnpm run build
+        run: |
+          cd tailwind
+          pnpm run build
 
       - name: Run pre-publish optimizations scripts
-        run: node ./scripts/pre-publish-optimizations.mjs
+        run: |
+          cd tailwind
+          node ./scripts/pre-publish-optimizations.mjs
 
       - name: Upload Standalone Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tailwindcss-standalone
-          path: packages/@tailwindcss-standalone/dist/
+          path: tailwind/packages/@tailwindcss-standalone/dist/
 
       - name: Create template package
-        working-directory: fasthtml
         run: |
           mkdir -p fasthtml-template/styles
           echo '@import "tailwindcss";' > fasthtml-template/styles/input.css
@@ -334,10 +331,10 @@ jobs:
             - Tailwind CSS ${{ needs.prepare.outputs.tailwind_version }}
             - DaisyUI ${{ needs.prepare.outputs.daisyui_version }}
           files: |
-            packages/@tailwindcss-standalone/dist/sha256sums.txt
-            packages/@tailwindcss-standalone/dist/tailwindcss-linux-arm64
-            packages/@tailwindcss-standalone/dist/tailwindcss-linux-x64
-            packages/@tailwindcss-standalone/dist/tailwindcss-macos-arm64
-            packages/@tailwindcss-standalone/dist/tailwindcss-macos-x64
-            packages/@tailwindcss-standalone/dist/tailwindcss-windows-x64.exe
+            tailwind/packages/@tailwindcss-standalone/dist/sha256sums.txt
+            tailwind/packages/@tailwindcss-standalone/dist/tailwindcss-linux-arm64
+            tailwind/packages/@tailwindcss-standalone/dist/tailwindcss-linux-x64
+            tailwind/packages/@tailwindcss-standalone/dist/tailwindcss-macos-arm64
+            tailwind/packages/@tailwindcss-standalone/dist/tailwindcss-macos-x64
+            tailwind/packages/@tailwindcss-standalone/dist/tailwindcss-windows-x64.exe
             fasthtml-template.zip
