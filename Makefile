@@ -27,56 +27,56 @@ else
     BINARY_NAME := tailwindcss-windows-x64.exe
 endif
 
-# Optional features (can be enabled with make SOUND=1 BROWSER=1)
-SOUND ?= 0
-BROWSER ?= 0
-
 # Setup (ensure binary is executable and styles exist)
 setup:
 	@echo "Setting up Tailwind..."
-	@if [ ! -f "tailwindcss" ]; then \
-		echo "Downloading Tailwind binary..."; \
-		curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/latest/download/$(BINARY_NAME); \
-		mv $(BINARY_NAME) tailwindcss; \
-	fi
-	@chmod +x tailwindcss
-	@mkdir -p styles
-	@if [ ! -f "styles/input.css" ]; then \
-		echo "Creating styles/input.css..."; \
-		echo '@import "tailwindcss";' > styles/input.css; \
-		echo '@plugin "daisyui";' >> styles/input.css; \
-	fi
+	@if not exist "tailwindcss" if not exist "tailwindcss.exe" ( \
+		echo "Downloading Tailwind binary..." && \
+		curl -sLO https://github.com/banditburai/ft-tw-daisy-dist/releases/latest/download/$(BINARY_NAME) && \
+		move $(BINARY_NAME) tailwindcss \
+	)
+	@if [ "$(UNAME)" != "Windows_NT" ]; then chmod +x tailwindcss; fi
+	@if not exist "styles" mkdir styles
+	@if not exist "styles\input.css" ( \
+		echo "Creating styles/input.css..." && \
+		echo @import "tailwindcss"; > styles/input.css && \
+		echo @plugin "daisyui"; >> styles/input.css \
+	)
 
 # Build CSS
 build-css: setup
 	@echo "Building CSS..."
 	./tailwindcss -i styles/input.css -o styles/output.css
 
-# Run the application
+# Run the application (standard Python)
 run:
-	@if [ "$(BROWSER)" = "1" ]; then \
-		(sleep 1 && $(OPEN_CMD) http://localhost:5001) & \
-	fi
-	@if [ "$(SOUND)" = "1" ]; then \
-		if [ "$(UNAME)" = "Darwin" ]; then \
-			afplay /System/Library/Sounds/Purr.aiff & \
-		elif [ "$(UNAME)" = "Linux" ]; then \
-			paplay /usr/share/sounds/freedesktop/stereo/complete.oga & \
-		elif [ "$(UNAME)" = "MINGW64_NT-10.0" ]; then \
-			powershell -c '(New-Object Media.SoundPlayer "C:\Windows\Media\notify.wav").PlaySync();' & \
-		fi; \
-	fi
+	python main.py
+
+# Development mode with watch (standard Python)
+dev: setup
+ifeq ($(OS),Windows_NT)
+	start /B tailwindcss -i styles/input.css -o styles/output.css --watch
+	python main.py
+else
+	./tailwindcss -i styles/input.css -o styles/output.css --watch & python main.py
+endif
+
+# UV-specific targets (requires UV to be installed: https://github.com/astral-sh/uv)
+uv-run: build-css
 	uv run main.py
 
-# Development mode with watch
-dev: setup
+uv-dev: setup
+ifeq ($(OS),Windows_NT)
+	start /B tailwindcss -i styles/input.css -o styles/output.css --watch
+	uv run main.py
+else
 	./tailwindcss -i styles/input.css -o styles/output.css --watch & uv run main.py
+endif
 
 # Clean built files
 clean:
-	rm -f styles/output.css
+	-rm -f styles/output.css 2>nul || del /F /Q styles\output.css
 
 # Deep clean (removes everything including binary)
 deep-clean:
-	rm -f styles/output.css
-	rm -f tailwindcss
+	-rm -f styles/output.css tailwindcss 2>nul || del /F /Q styles\output.css tailwindcss.exe

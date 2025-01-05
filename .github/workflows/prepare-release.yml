@@ -1,0 +1,302 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+        type: string
+permissions:
+  contents: read
+
+env:
+  APP_NAME: tailwindcss-oxide
+  NODE_VERSION: 20
+  OXIDE_LOCATION: ./crates/node
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tailwind_version: ${{ steps.get-tag.outputs.tag }}
+      daisyui_version: ${{ steps.get-daisyui.outputs.version }}
+    steps:
+      - name: Checkout FastHTML
+        uses: actions/checkout@v4
+        with:
+          path: fasthtml
+
+      - name: Get latest v4 tag
+        id: get-tag
+        run: |
+          LATEST_TAG=$(curl -s https://api.github.com/repos/tailwindlabs/tailwindcss/tags | jq -r '.[] | select(.name | startswith("v4")) | .name' | head -n1)
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Clone Tailwind
+        uses: actions/checkout@v4
+        with:
+          repository: tailwindlabs/tailwindcss
+          ref: ${{ steps.get-tag.outputs.tag }}
+          path: tailwind
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Add DaisyUI
+        working-directory: tailwind/packages/@tailwindcss-standalone
+        run: |
+          pnpm add -D daisyui@beta
+
+      - name: Modify standalone index
+        working-directory: tailwind
+        run: |
+          # Add daisyui to switch case
+          sed -i '/case "@tailwindcss\/aspect-ratio":/a \ \ \ \ case "daisyui":\n \ \ \ \ \ \ return id' packages/@tailwindcss-standalone/src/index.ts
+          # Add daisyui to load function
+          sed -i '/return require("@tailwindcss\/aspect-ratio")/a \ \ } else if (id.endsWith("daisyui")) {\n \ \ \ \ return require("daisyui")' packages/@tailwindcss-standalone/src/index.ts
+
+      - name: Get DaisyUI version
+        id: get-daisyui
+        working-directory: tailwind/packages/@tailwindcss-standalone
+        run: |
+          DAISYUI_VERSION=$(pnpm list daisyui --json | jq -r '.[0].dependencies.daisyui.version')
+          echo "version=$DAISYUI_VERSION" >> $GITHUB_OUTPUT
+
+  build:
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          # Windows
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+          # macOS
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            strip: strip -x
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            strip: strip -x
+          # Android
+          - os: ubuntu-latest
+            target: aarch64-linux-android
+            strip: ${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip
+          - os: ubuntu-latest
+            target: armv7-linux-androideabi
+            strip: ${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip
+          # Linux
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            strip: strip
+            container:
+              image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            strip: llvm-strip
+            container:
+              image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+            strip: llvm-strip
+            container:
+              image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-zig
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            strip: aarch64-linux-musl-strip
+            download: true
+            container:
+              image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            strip: strip
+            download: true
+            container:
+              image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+
+    name: Build ${{ matrix.target }} (OXIDE)
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      # Cargo already skips downloading dependencies if they already exist
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      # Cache the `oxide` Rust build
+      - name: Cache oxide build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./oxide/target/
+            ./crates/node/*.node
+            ./crates/node/index.js
+            ./crates/node/index.d.ts
+          key: ${{ runner.os }}-${{ matrix.target }}-oxide-${{ hashFiles('./crates/**/*') }}
+
+      - name: Install Node.JS
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Rust (Stable)
+        if: ${{ matrix.download }}
+        run: |
+          rustup default stable
+
+      - name: Setup rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts --filter=!./playgrounds/*
+
+      - name: Build release
+        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
+        env:
+          RUST_TARGET: ${{ matrix.target }}
+          JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
+
+      - name: Strip debug symbols # https://github.com/rust-lang/rust/issues/46034
+        if: ${{ matrix.strip }}
+        run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings-${{ matrix.target }}
+          path: ${{ env.OXIDE_LOCATION }}/*.node
+
+  release:
+    runs-on: macos-14
+    timeout-minutes: 15
+    name: Build and release Tailwind CSS
+    permissions:
+      contents: write # for softprops/action-gh-release to create GitHub release
+      # https://docs.npmjs.com/generating-provenance-statements#publishing-packages-with-provenance-via-github-actions      
+    needs:
+      - build
+      - prepare
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'          
+
+      # Cargo already skips downloading dependencies if they already exist
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      # Cache the `oxide` Rust build
+      - name: Cache oxide build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./oxide/target/
+            ./crates/node/*.node
+            ./crates/node/index.js
+            ./crates/node/index.d.ts
+          key: ${{ runner.os }}-${{ matrix.target }}-oxide-${{ hashFiles('./crates/**/*') }}
+
+      - name: Install dependencies
+        run: pnpm --filter=!./playgrounds/* install
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ env.OXIDE_LOCATION }}
+
+      - name: Move artifacts
+        run: |
+          cd ${{ env.OXIDE_LOCATION }}
+          cp bindings-x86_64-pc-windows-msvc/* ./npm/win32-x64-msvc/
+          cp bindings-aarch64-pc-windows-msvc/* ./npm/win32-arm64-msvc/
+          cp bindings-x86_64-apple-darwin/* ./npm/darwin-x64/
+          cp bindings-aarch64-apple-darwin/* ./npm/darwin-arm64/
+          cp bindings-aarch64-linux-android/* ./npm/android-arm64/
+          cp bindings-armv7-linux-androideabi/* ./npm/android-arm-eabi/
+          cp bindings-aarch64-unknown-linux-gnu/* ./npm/linux-arm64-gnu/
+          cp bindings-aarch64-unknown-linux-musl/* ./npm/linux-arm64-musl/
+          cp bindings-armv7-unknown-linux-gnueabihf/* ./npm/linux-arm-gnueabihf/
+          cp bindings-x86_64-unknown-linux-gnu/* ./npm/linux-x64-gnu/
+          cp bindings-x86_64-unknown-linux-musl/* ./npm/linux-x64-musl/
+
+      - name: Build Tailwind CSS
+        run: pnpm run build
+
+      - name: Run pre-publish optimizations scripts
+        run: node ./scripts/pre-publish-optimizations.mjs
+
+      - name: Upload Standalone Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tailwindcss-standalone
+          path: packages/@tailwindcss-standalone/dist/
+
+      - name: Create template package
+        working-directory: fasthtml
+        run: |
+          mkdir -p fasthtml-template/styles
+          echo '@import "tailwindcss";' > fasthtml-template/styles/input.css
+          echo '@plugin "daisyui";' >> fasthtml-template/styles/input.css
+          cp Makefile fasthtml-template/
+          cp main.py fasthtml-template/
+          zip -r fasthtml-template.zip fasthtml-template/
+
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          tag_name: ${{ inputs.version }}
+          body: |
+            Updated to:
+            - Tailwind CSS ${{ needs.prepare.outputs.tailwind_version }}
+            - DaisyUI ${{ needs.prepare.outputs.daisyui_version }}
+          files: |
+            packages/@tailwindcss-standalone/dist/sha256sums.txt
+            packages/@tailwindcss-standalone/dist/tailwindcss-linux-arm64
+            packages/@tailwindcss-standalone/dist/tailwindcss-linux-x64
+            packages/@tailwindcss-standalone/dist/tailwindcss-macos-arm64
+            packages/@tailwindcss-standalone/dist/tailwindcss-macos-x64
+            packages/@tailwindcss-standalone/dist/tailwindcss-windows-x64.exe
+            fasthtml-template.zip
