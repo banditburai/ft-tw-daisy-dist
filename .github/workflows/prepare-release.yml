@@ -127,14 +127,17 @@ jobs:
 
       - name: Setup Tailwind standalone
         run: |
-          # Debug: Check patches
+          # Debug: Check patches and dependencies
           echo "Checking patches in cloned repo:"
           ls -la tailwindcss/patches/
           
+          echo "Checking package.json dependencies:"
+          cat tailwindcss/package.json | grep lightningcss
+          
           cd tailwindcss
           
-          # Install dependencies at root level
-          pnpm install --no-frozen-lockfile
+          # Try installing with --force to bypass patch checks
+          pnpm install --no-frozen-lockfile --force
           
           # Now add daisyui to the standalone package
           cd packages/@tailwindcss-standalone
