@@ -1,4 +1,4 @@
-name: Create Release
+name: Update Release Template
 on:
   workflow_dispatch:
     inputs:
@@ -13,22 +13,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Run prepare-release script
+      - name: Create template package
         run: |
-          chmod +x prepare-release.sh
-          ./prepare-release.sh
+          mkdir -p template-package/styles
+          echo '@import "tailwindcss";' > template-package/styles/input.css
+          echo '@plugin "daisyui";' >> template-package/styles/input.css
+          cp Makefile template-package/
+          cp main.py template-package/
+          zip -r fasthtml-template.zip template-package/
       
-      - name: Create Release
+      - name: Update Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create v${{ github.event.inputs.version }} \
-            --title "Release v${{ github.event.inputs.version }}" \
-            --generate-notes \
-            release/fasthtml-template.zip \
-            release/tailwindcss-linux-arm64 \
-            release/tailwindcss-linux-x64 \
-            release/tailwindcss-macos-arm64 \
-            release/tailwindcss-macos-x64 \
-            release/tailwindcss-windows-x64.exe \
-            release/sha256sums.txt
+          gh release upload v${{ github.event.inputs.version }} fasthtml-template.zip --clobber
