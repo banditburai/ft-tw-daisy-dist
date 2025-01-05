@@ -56,8 +56,8 @@ jobs:
           mkdir -p .
           if [ ! -f "package.json" ]; then
             echo '{"private": true}' > package.json
+            pnpm init
           fi
-          pnpm init
           pnpm add -D daisyui@beta
 
       - name: Modify standalone index
