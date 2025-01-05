@@ -50,10 +50,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Setup pnpm environment
         run: |
-          export PNPM_HOME="/Users/runner/setup-pnpm/node_modules/.bin"
+          export PNPM_HOME="/home/runner/.local/share/pnpm"
+          mkdir -p "$PNPM_HOME"
           export PATH="$PNPM_HOME:$PATH"
           pnpm --version
 
@@ -203,7 +205,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          export PNPM_HOME="/Users/runner/setup-pnpm/node_modules/.bin"
+          export PNPM_HOME="/home/runner/.local/share/pnpm"
           export PATH="$PNPM_HOME:$PATH"
           pnpm install --ignore-scripts --filter=!./playgrounds/*
 
