@@ -265,7 +265,22 @@ jobs:
         working-directory: tailwindcss
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
-      # Keep existing Rust installation step unchanged
+      # Add cargo to PATH before any Rust operations
+      - name: Setup Rust PATH
+        shell: bash
+        run: |
+          # Add cargo to PATH - handle both container and non-container environments
+          if [ -d "/usr/local/cargo/bin" ]; then
+            echo "/usr/local/cargo/bin" >> $GITHUB_PATH
+            export PATH="/usr/local/cargo/bin:$PATH"
+          elif [ -d "$HOME/.cargo/bin" ]; then
+            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+            export PATH="$HOME/.cargo/bin:$PATH"
+          fi
+          
+          # Source cargo env if it exists
+          [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
+
       - name: Install Rust (Stable)
         if: ${{ matrix.download }}
         run: |
