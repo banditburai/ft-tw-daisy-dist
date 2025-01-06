@@ -313,21 +313,14 @@ jobs:
             ./crates/node/index.d.ts
           key: ${{ runner.os }}-${{ matrix.target }}-oxide-${{ hashFiles('./crates/**/*') }}
 
-      # Build steps
-      - name: Build
-        working-directory: ${{ env.OXIDE_LOCATION }}
-        shell: bash
-        if: ${{ !contains(matrix.target, 'musl') }}
-        run: pnpm napi build --platform ${{ matrix.target }} --release --no-const-enum
-        env:
-          RUST_TARGET: ${{ matrix.target }}
-          JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
+      # Add cargo to PATH
+      - name: Add cargo to PATH
+        run: |
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          source "$HOME/.cargo/env"
 
-      - name: Build (musl)
-        working-directory: ${{ env.OXIDE_LOCATION }}
-        shell: bash
-        if: ${{ contains(matrix.target, 'musl') }}
-        run: pnpm napi build --platform ${{ matrix.target }} --release --no-const-enum
+      - name: Build release
+        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
