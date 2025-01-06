@@ -278,8 +278,7 @@ jobs:
 
       - name: Setup rust target
         run: rustup target add ${{ matrix.target }}
-
-      # Add our Android NDK steps here, after Rust setup but before dependencies
+      
       - name: Setup Android NDK
         if: contains(matrix.target, 'android')
         uses: nttld/setup-ndk@v1
