@@ -265,7 +265,13 @@ jobs:
         working-directory: tailwindcss
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
   
-      # Install Rust first - no conditional
+      # Add cross-compilation tools first
+      - name: Install cross-compilation dependencies
+        if: contains(matrix.target, 'linux-musl')
+        run: |
+          apk add --no-cache zig musl-dev gcc
+
+      # Keep existing Rust installation step unchanged
       - name: Install Rust and targets
         shell: bash
         run: |
@@ -279,18 +285,8 @@ jobs:
           # Install latest stable
           rustup toolchain install stable --profile minimal
           
-          # Add all targets from matrix
-          rustup target add x86_64-pc-windows-msvc
-          rustup target add aarch64-pc-windows-msvc
-          rustup target add x86_64-apple-darwin
-          rustup target add aarch64-apple-darwin
-          rustup target add aarch64-linux-android
-          rustup target add armv7-linux-androideabi
-          rustup target add x86_64-unknown-linux-gnu
-          rustup target add aarch64-unknown-linux-gnu
-          rustup target add armv7-unknown-linux-gnueabihf
-          rustup target add aarch64-unknown-linux-musl
-          rustup target add x86_64-unknown-linux-musl
+          # Add target from matrix
+          rustup target add ${{ matrix.target }}
           
           rustup component add rust-src
           
