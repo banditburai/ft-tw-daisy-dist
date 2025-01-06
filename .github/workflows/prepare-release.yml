@@ -227,14 +227,21 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+            
+      - name: Download Tailwind directory
+        uses: actions/download-artifact@v4
+        with:
+          name: tailwind-prepared
+          path: tailwindcss
+
       - uses: pnpm/action-setup@v4
         with:
-          version: 8          
-
+          version: 8
+          
       - name: Use Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}          
+          node-version: ${{ env.NODE_VERSION }}
 
       # Cargo already skips downloading dependencies if they already exist
       - name: Cache cargo
