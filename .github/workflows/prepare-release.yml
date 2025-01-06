@@ -269,6 +269,9 @@ jobs:
       - name: Install Rust and targets
         shell: bash
         run: |
+          # Add cargo to PATH
+          source "$HOME/.cargo/env"
+          
           # Install latest stable
           rustup toolchain install stable --profile minimal
           
@@ -292,7 +295,8 @@ jobs:
           
           # Verify installation
           rustup show
-          rustc --print target-list | grep -E "android|windows|darwin|linux"
+          rustc --version
+          cargo --version
 
       - name: Setup Cross-Compilation Tools
         if: contains(matrix.target, 'android')
