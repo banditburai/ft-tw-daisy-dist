@@ -298,6 +298,7 @@ jobs:
           file ${{ env.OXIDE_LOCATION }}/*.node
 
       - name: Strip debug symbols
+        working-directory: tailwindcss
         if: ${{ matrix.strip }}
         run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
 
@@ -305,7 +306,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.target }}
-          path: ${{ env.OXIDE_LOCATION }}/*.node
+          path: tailwindcss/${{ env.OXIDE_LOCATION }}/*.node
 
   release:
     runs-on: macos-14
