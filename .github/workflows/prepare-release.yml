@@ -236,6 +236,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
+        working-directory: tailwindcss
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
       - name: Install Rust (Stable)
@@ -244,6 +245,7 @@ jobs:
           rustup default stable
 
       - name: Setup rust target
+        working-directory: tailwindcss
         run: rustup target add ${{ matrix.target }}
       
       - name: Setup Android NDK
@@ -251,46 +253,7 @@ jobs:
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r25c
-
-      # Configure toolchains for different targets
-      - name: Configure target toolchain
-        working-directory: tailwindcss/crates/node
-        shell: bash
-        run: |
-          mkdir -p .cargo
-          if [[ "${{ matrix.target }}" == *"android"* ]]; then
-            # Android configuration
-            export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
-            export PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
-            printf '%s\n' \
-              "[target.${{ matrix.target }}]" \
-              "ar = \"$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar\"" \
-              "linker = \"$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang\"" \
-              > .cargo/config.toml
-          elif [[ "${{ matrix.target }}" == *"musl"* ]]; then
-            # Musl configuration
-            printf '%s\n' \
-              "[target.${{ matrix.target }}]" \
-              "linker = \"${{ contains(matrix.target, 'aarch64') && 'aarch64-linux-musl-gcc' || 'x86_64-linux-musl-gcc' }}\"" \
-              "rustflags = [\"-C\", \"target-feature=-crt-static\"]" \
-              > .cargo/config.toml
-          elif [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
-            printf '%s\n' \
-              "[target.${{ matrix.target }}]" \
-              "linker = \"aarch64-linux-gnu-gcc\"" \
-              > .cargo/config.toml
-          elif [[ "${{ matrix.target }}" == "armv7-unknown-linux-gnueabihf" ]]; then
-            printf '%s\n' \
-              "[target.${{ matrix.target }}]" \
-              "linker = \"arm-linux-gnueabihf-gcc\"" \
-              > .cargo/config.toml
-          else
-            # Default configuration for other targets (macOS, Windows, etc.)
-            printf '%s\n' \
-              "[target.${{ matrix.target }}]" \
-              > .cargo/config.toml
-          fi
-
+     
       # Cache steps after all setup but before build
       - name: Cache cargo
         uses: actions/cache@v4
@@ -313,21 +276,14 @@ jobs:
             ./crates/node/index.d.ts
           key: ${{ runner.os }}-${{ matrix.target }}-oxide-${{ hashFiles('./crates/**/*') }}
 
-      # Add cargo to PATH
-      - name: Add cargo to PATH
-        run: |
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          source "$HOME/.cargo/env"
-
-      - name: Build release
+      - name: Build release        
         working-directory: tailwindcss
         run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
-      - name: Debug build output
-        working-directory: tailwindcss/crates/node
+      - name: Debug build output        
         shell: bash
         run: |
           echo "Target: ${{ matrix.target }}"
