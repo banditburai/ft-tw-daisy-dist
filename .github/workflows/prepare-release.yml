@@ -287,6 +287,9 @@ jobs:
       - name: Setup Rust PATH
         shell: bash
         run: |
+          # Source rustup environment first - this is always in $HOME/.cargo/env
+          source "$HOME/.cargo/env"
+          
           # Add cargo to PATH - handle both container and non-container environments
           if [ -d "/usr/local/cargo/bin" ]; then
             echo "/usr/local/cargo/bin" >> $GITHUB_PATH
