@@ -243,6 +243,12 @@ jobs:
         working-directory: tailwindcss
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
+      - name: Setup Android NDK
+        if: contains(matrix.target, 'android')
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+
       - name: Install Rust
         if: ${{ !matrix.container || matrix.download }}
         shell: bash
@@ -256,12 +262,6 @@ jobs:
           source "$HOME/.cargo/env"
           rustup target add ${{ matrix.target }}
       
-      - name: Setup Android NDK
-        if: contains(matrix.target, 'android')
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r25c
-     
       # Cache steps after all setup but before build
       - name: Cache cargo
         uses: actions/cache@v4
