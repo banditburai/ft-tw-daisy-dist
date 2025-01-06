@@ -245,12 +245,9 @@ jobs:
 
       - name: Install Rust
         if: ${{ !matrix.container || matrix.download }}
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          source "$HOME/.cargo/env"
-          rustup default stable          
+        run: rustup default stable
 
-      - name: Setup rust target        
+      - name: Setup rust target
         run: rustup target add ${{ matrix.target }}
       
       - name: Setup Android NDK
