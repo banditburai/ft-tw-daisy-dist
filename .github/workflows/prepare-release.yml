@@ -112,6 +112,12 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      # First install all Tailwind dependencies
+      - name: Install Tailwind dependencies
+        working-directory: tailwindcss
+        run: pnpm install --ignore-scripts --filter=!./playgrounds/*
+
+      # Then setup the standalone package
       - name: Setup Tailwind standalone
         working-directory: tailwindcss/packages/@tailwindcss-standalone
         run: |
@@ -120,7 +126,7 @@ jobs:
           auto-install-peers=true
           node-linker=hoisted" > .npmrc
           
-          # Add lightningcss dependency and patchedDependencies to package.json
+          # Add lightningcss dependency and patchedDependencies
           node -e '
             const fs = require("fs");
             const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
@@ -136,12 +142,9 @@ jobs:
           pnpm install --no-frozen-lockfile
           pnpm add -D daisyui@beta
           
-          # Add daisyui to the resolver switch statement in src/index.ts
+          # Add daisyui to resolver and loader
           sed -i '/case "@tailwindcss\/aspect-ratio":/a\      case "daisyui":\n        return id' src/index.ts
-          
-          # Add daisyui to the loader in src/index.ts
           sed -i '/return require("@tailwindcss\/aspect-ratio")/a\    } else if (id.endsWith("daisyui")) {\n      return require("daisyui")' src/index.ts
-          
 
       - name: Get DaisyUI version
         id: get-daisyui
@@ -149,10 +152,6 @@ jobs:
         run: |
           DAISYUI_VERSION=$(pnpm list daisyui --json | jq -r '.[0].dependencies.daisyui.version')
           echo "version=$DAISYUI_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Install Tailwind dependencies
-        working-directory: tailwindcss
-        run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
       - name: Upload Tailwind directory
         uses: actions/upload-artifact@v4
@@ -236,33 +235,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      # Cargo already skips downloading dependencies if they already exist
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      # Cache the `oxide` Rust build
-      - name: Cache oxide build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ./oxide/target/
-            ./crates/node/*.node
-            ./crates/node/index.js
-            ./crates/node/index.d.ts
-          key: ${{ runner.os }}-${{ matrix.target }}-oxide-${{ hashFiles('./crates/**/*') }}
-
-      - name: Install Node.JS
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
       - name: Install Rust (Stable)
         if: ${{ !matrix.container || matrix.download }}
@@ -277,7 +251,6 @@ jobs:
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r25c
-          add-to-path: true
 
       # Configure toolchains for different targets
       - name: Configure target toolchain
@@ -318,9 +291,29 @@ jobs:
               > .cargo/config.toml
           fi
 
-      - name: Install dependencies
-        run: pnpm install --ignore-scripts --filter=!./playgrounds/*
+      # Cache steps after all setup but before build
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Cache oxide build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./oxide/target/
+            ./crates/node/*.node
+            ./crates/node/index.js
+            ./crates/node/index.d.ts
+          key: ${{ runner.os }}-${{ matrix.target }}-oxide-${{ hashFiles('./crates/**/*') }}
+
+      # Build steps
       - name: Build
         working-directory: ${{ env.OXIDE_LOCATION }}
         shell: bash
