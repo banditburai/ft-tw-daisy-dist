@@ -273,8 +273,14 @@ jobs:
           echo "PATH: $PATH"
           which rustc || echo "rustc not found"
           which cargo || echo "cargo not found"
-          ls -la /usr/local/bin/cargo || echo "No cargo in /usr/local/bin"
-          ls -la $HOME/.cargo/bin/cargo || echo "No cargo in ~/.cargo/bin"
+          
+          # Check cargo location based on OS
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            ls -la "$USERPROFILE/.cargo/bin/cargo.exe" || echo "No cargo in Windows user directory"
+          else
+            ls -la "/usr/local/bin/cargo" || echo "No cargo in /usr/local/bin"
+            ls -la "$HOME/.cargo/bin/cargo" || echo "No cargo in ~/.cargo/bin"
+          fi
 
       # First ensure Rust toolchain is properly set up
       - uses: actions-rs/toolchain@v1
@@ -376,15 +382,10 @@ jobs:
           rustflags = ["-C", "target-feature=+crt-static"]
           EOF
 
-      - name: Build release
-        working-directory: tailwindcss
-        shell: bash
+      - name: Build
         env:
-          RUST_TARGET: ${{ matrix.target }}
-          JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
-          CARGO_BUILD_TARGET: ${{ matrix.target }}
-          NAPI_BUILD_PLATFORM: ${{ matrix.target }}
           SKIP_PLATFORM_CHECK: true
+          CARGO_BUILD_TARGET: ${{ matrix.target }}
         run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
 
       - name: Debug build output
@@ -393,9 +394,19 @@ jobs:
         run: |
           echo "Target: ${{ matrix.target }}"
           echo "Files in node directory:"
-          ls -la ${{ env.OXIDE_LOCATION }}/*.node
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            dir ${{ env.OXIDE_LOCATION }}\*.node
+          else
+            ls -la ${{ env.OXIDE_LOCATION }}/*.node
+          fi
+          
           echo "File information:"
-          file ${{ env.OXIDE_LOCATION }}/*.node
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # Windows doesn't have the 'file' command, but we can show basic info
+            stat ${{ env.OXIDE_LOCATION }}\*.node || echo "No .node files found"
+          else
+            file ${{ env.OXIDE_LOCATION }}/*.node || echo "No .node files found"
+          fi
 
       - name: Strip debug symbols
         working-directory: tailwindcss
