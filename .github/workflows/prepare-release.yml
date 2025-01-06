@@ -287,18 +287,28 @@ jobs:
       - name: Setup Rust PATH
         shell: bash
         run: |
-          # Source rustup environment first - this is always in $HOME/.cargo/env
-          source "$HOME/.cargo/env"
-          
-          # Add cargo to PATH - handle both container and non-container environments
-          if [ -d "/usr/local/cargo/bin" ]; then
-            echo "/usr/local/cargo/bin" >> $GITHUB_PATH
-            export PATH="/usr/local/cargo/bin:$PATH"
-          elif [ -d "$HOME/.cargo/bin" ]; then
-            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-            export PATH="$HOME/.cargo/bin:$PATH"
+          # Source rustup environment if available
+          if [ -f "$HOME/.cargo/env" ]; then
+            source "$HOME/.cargo/env"
           fi
-
+          
+          # On Windows, use Windows-style paths
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            CARGO_PATH="$HOME/.cargo/bin"
+            CARGO_PATH=$(cygpath -w "$CARGO_PATH")
+            echo "$CARGO_PATH" >> $GITHUB_PATH
+            export PATH="$CARGO_PATH:$PATH"
+          else
+            # Unix-style paths for Linux/macOS
+            if [ -d "/usr/local/cargo/bin" ]; then
+              echo "/usr/local/cargo/bin" >> $GITHUB_PATH
+              export PATH="/usr/local/cargo/bin:$PATH"
+            elif [ -d "$HOME/.cargo/bin" ]; then
+              echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+              export PATH="$HOME/.cargo/bin:$PATH"
+            fi
+          fi
+          
           # Verify installation
           rustc --version
           cargo --version
