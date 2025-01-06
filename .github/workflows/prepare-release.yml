@@ -329,21 +329,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
-      - name: Add cross-compilation script
-        working-directory: ${{ env.OXIDE_LOCATION }}
-        run: |
-          node -e '
-            const fs = require("fs");
-            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-            pkg.scripts["build:cross"] = "napi build --release --no-const-enum";
-            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
-          '
-
       - name: Build
         working-directory: ${{ env.OXIDE_LOCATION }}
         shell: bash
         if: ${{ !contains(matrix.target, 'musl') }}
-        run: pnpm run build:cross -- --target ${{ matrix.target }}
+        run: napi build --platform ${{ matrix.target }} --release --no-const-enum
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
@@ -352,7 +342,7 @@ jobs:
         working-directory: ${{ env.OXIDE_LOCATION }}
         shell: bash
         if: ${{ contains(matrix.target, 'musl') }}
-        run: pnpm run build:cross -- --target ${{ matrix.target }}
+        run: napi build --platform ${{ matrix.target }} --release --no-const-enum
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
