@@ -303,6 +303,7 @@ jobs:
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
       - name: Build release
+        shell: bash
         run: |
           # Set up cargo config for musl targets only
           if [[ "${{ matrix.target }}" == *"musl"* ]]; then
