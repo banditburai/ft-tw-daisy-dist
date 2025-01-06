@@ -322,6 +322,8 @@ jobs:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
           npm_config_arch: ${{ contains(matrix.target, 'aarch64') && 'arm64' || 'x64' }}
           npm_config_platform: linux
+          npm_config_libc: musl
+          NODE_ABI: musl
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
       - name: Strip debug symbols
