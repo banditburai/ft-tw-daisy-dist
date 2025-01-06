@@ -302,13 +302,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
+      # Add this before the build step for musl targets
+      - name: Configure musl target
+        if: contains(matrix.target, 'musl')
+        run: |
+          rustup target add aarch64-unknown-linux-musl
+          mkdir -p .cargo
+          echo '[target.aarch64-unknown-linux-musl]
+          linker = "aarch64-linux-musl-gcc"' > .cargo/config.toml
+
       - name: Build release
         run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
         env:
           RUST_TARGET: ${{ matrix.target }}
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
-      - name: Strip debug symbols # https://github.com/rust-lang/rust/issues/46034
+      - name: Strip debug symbols
         if: ${{ matrix.strip }}
         run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
 
