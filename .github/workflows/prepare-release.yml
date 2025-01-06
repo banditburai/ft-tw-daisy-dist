@@ -268,6 +268,7 @@ jobs:
 
       # First, debug to see what we're working with
       - name: Debug Rust installation
+        shell: bash
         run: |
           echo "PATH: $PATH"
           which rustc || echo "rustc not found"
