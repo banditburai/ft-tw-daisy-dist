@@ -154,13 +154,6 @@ jobs:
         working-directory: tailwindcss
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
-      - name: Build Tailwind node modules
-        working-directory: tailwindcss/crates/node
-        run: pnpm run build
-        env:
-          RUST_TARGET: ${{ matrix.target }}
-          JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
-
       - name: Upload Tailwind directory
         uses: actions/upload-artifact@v4
         with:
@@ -272,7 +265,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install Rust (Stable)
-        if: ${{ matrix.download }}
+        if: ${{ !matrix.container || matrix.download }}
         run: |
           rustup default stable
 
