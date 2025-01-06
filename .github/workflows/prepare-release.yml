@@ -389,7 +389,7 @@ jobs:
         run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
 
       - name: Debug build output
-        working-directory: tailwindcss/crates/node
+        working-directory: tailwindcss
         shell: bash
         run: |
           echo "Target: ${{ matrix.target }}"
