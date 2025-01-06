@@ -320,12 +320,14 @@ jobs:
           source "$HOME/.cargo/env"
 
       - name: Build release
+        working-directory: tailwindcss
         run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
       - name: Debug build output
+        working-directory: tailwindcss/crates/node
         shell: bash
         run: |
           echo "Target: ${{ matrix.target }}"
