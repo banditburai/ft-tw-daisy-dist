@@ -266,16 +266,19 @@ jobs:
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
       # Keep existing Rust installation step unchanged
-      - name: Install Rust and targets
+      - name: Setup Rust PATH
         shell: bash
         run: |
           # Add cargo to PATH - handle both container and non-container environments
-          if [ -f "/usr/local/cargo/env" ]; then
-            source "/usr/local/cargo/env"
-          elif [ -f "$HOME/.cargo/env" ]; then
-            source "$HOME/.cargo/env"
+          if [ -d "/usr/local/cargo/bin" ]; then
+            echo "/usr/local/cargo/bin" >> $GITHUB_PATH
+          elif [ -d "$HOME/.cargo/bin" ]; then
+            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           fi
-          
+
+      - name: Install Rust and targets
+        shell: bash
+        run: |
           # Install latest stable
           rustup toolchain install stable --profile minimal
           
