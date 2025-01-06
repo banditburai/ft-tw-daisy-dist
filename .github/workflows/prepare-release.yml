@@ -243,14 +243,14 @@ jobs:
         working-directory: tailwindcss
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
-      - name: Install Rust (Stable)
+      - name: Install Rust
         if: ${{ !matrix.container || matrix.download }}
         run: |
-          rustup default stable
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source "$HOME/.cargo/env"
+          rustup default stable          
 
-      - name: Setup rust target
-        working-directory: tailwindcss
+      - name: Setup rust target        
         run: rustup target add ${{ matrix.target }}
       
       - name: Setup Android NDK
