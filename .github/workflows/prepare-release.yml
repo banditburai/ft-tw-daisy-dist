@@ -274,15 +274,30 @@ jobs:
       - name: Setup Android NDK
         if: contains(matrix.target, 'android')
         run: |
+          # Set NDK path
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
-          echo "CARGO_TARGET_$(echo ${{ matrix.target }} | tr '[:lower:]' '[:upper:]' | tr '-' '_')_LINKER=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.target }}21-clang" >> $GITHUB_ENV
           
-          # Create .cargo/config.toml with linker settings
+          # Get target triple without the 'android' suffix for proper toolchain naming
+          TARGET_TRIPLE="${{ matrix.target }}"
+          if [[ "$TARGET_TRIPLE" == "armv7-linux-androideabi" ]]; then
+            CLANG_TARGET="armv7a-linux-androideabi"
+          else
+            CLANG_TARGET="${TARGET_TRIPLE%eabi}"
+          fi
+          
+          # Set linker path
+          echo "CARGO_TARGET_$(echo ${{ matrix.target }} | tr '[:lower:]' '[:upper:]' | tr '-' '_')_LINKER=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${CLANG_TARGET}21-clang" >> $GITHUB_ENV
+          
+          # Create .cargo/config.toml with complete target configuration
           mkdir -p .cargo
           cat > .cargo/config.toml << EOF
           [target.${{ matrix.target }}]
           ar = "$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-          linker = "$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.target }}21-clang"
+          linker = "$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${CLANG_TARGET}21-clang"
+          rustflags = [
+            "-C", "link-arg=--target=${CLANG_TARGET}21",
+            "-C", "link-arg=-fuse-ld=lld",
+          ]
           EOF
 
       - name: Setup rust target
@@ -293,17 +308,6 @@ jobs:
           rustup target list --installed
           rustup show
 
-      - name: Debug Environment
-        shell: bash
-        run: |
-          echo "Target: ${{ matrix.target }}"
-          echo "OS: ${{ matrix.os }}"
-          echo "Container: ${{ matrix.container.image || 'none' }}"
-          echo "Strip command: ${{ matrix.strip }}"
-          rustc --version --verbose
-          rustup target list --installed
-          env | sort
-
       - name: Build release
         working-directory: tailwindcss
         env:
@@ -312,6 +316,7 @@ jobs:
           CARGO_BUILD_TARGET: ${{ matrix.target }}
           NAPI_BUILD_PLATFORM: ${{ matrix.target }}
           SKIP_PLATFORM_CHECK: true
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
           # Android ARM64 env vars
           CC_aarch64_linux_android: ${{ env.ANDROID_NDK_LATEST_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang
           CXX_aarch64_linux_android: ${{ env.ANDROID_NDK_LATEST_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++
