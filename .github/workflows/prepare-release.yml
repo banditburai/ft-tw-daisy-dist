@@ -300,23 +300,27 @@ jobs:
           # Set NDK path with full path
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
           
-          # Get target triple without the 'android' suffix for proper toolchain naming
-          TARGET_TRIPLE="${{ matrix.target }}"
-          if [[ "$TARGET_TRIPLE" == "armv7-linux-androideabi" ]]; then
-            CLANG_TARGET="armv7a-linux-androideabi"
-          else
-            CLANG_TARGET="${TARGET_TRIPLE%eabi}"
-          fi
-          
-          # Create .cargo/config.toml with complete target configuration
+          # Create complete cargo config
           mkdir -p .cargo
           cat > .cargo/config.toml << EOF
-          [target.${{ matrix.target }}]
+          [target.aarch64-linux-android]
           ar = "$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-          linker = "$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${CLANG_TARGET}21-clang"
+          linker = "$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"
           rustflags = [
-            "-C", "link-arg=--target=${CLANG_TARGET}21",
+            "-C", "link-arg=--target=aarch64-linux-android21",
             "-C", "link-arg=-fuse-ld=lld",
+            "-l", "c++_shared",  # Add C++ runtime
+            "-L", "$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/lib64"  # Add library search path
+          ]
+
+          [target.armv7-linux-androideabi]
+          ar = "$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          linker = "$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang"
+          rustflags = [
+            "-C", "link-arg=--target=armv7a-linux-androideabi21",
+            "-C", "link-arg=-fuse-ld=lld",
+            "-l", "c++_shared",
+            "-L", "$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/lib64"
           ]
           EOF
           
