@@ -222,6 +222,7 @@ jobs:
     container: ${{ matrix.container }}
     timeout-minutes: 15
     steps:
+      
       - uses: actions/checkout@v4
             
       - name: Download Tailwind directory
@@ -265,46 +266,46 @@ jobs:
         working-directory: tailwindcss
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
-      # Add cargo to PATH before any Rust operations
+      # First, debug to see what we're working with
+      - name: Debug Rust installation
+        run: |
+          echo "PATH: $PATH"
+          which rustc || echo "rustc not found"
+          which cargo || echo "cargo not found"
+          ls -la /usr/local/bin/cargo || echo "No cargo in /usr/local/bin"
+          ls -la $HOME/.cargo/bin/cargo || echo "No cargo in ~/.cargo/bin"
+
+      # Then ensure Rust toolchain is properly set up
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
       - name: Setup Rust PATH
         shell: bash
         run: |
-          # Try all possible cargo locations
-          CARGO_PATHS=(
-            "/usr/local/cargo/bin"
-            "$HOME/.cargo/bin"
-            "/github/home/.cargo/bin"
-            "/root/.cargo/bin"
-          )
-          
-          for cargo_path in "${CARGO_PATHS[@]}"; do
-            if [ -d "$cargo_path" ]; then
-              echo "$cargo_path" >> $GITHUB_PATH
-              export PATH="$cargo_path:$PATH"
-            fi
-          done
-          
-          # Try all possible cargo env file locations
-          CARGO_ENV_PATHS=(
-            "$HOME/.cargo/env"
-            "/github/home/.cargo/env"
-            "/root/.cargo/env"
-          )
-          
-          for env_path in "${CARGO_ENV_PATHS[@]}"; do
-            if [ -f "$env_path" ]; then
-              source "$env_path"
-              break
-            fi
-          done
+          # Add cargo to PATH - handle both container and non-container environments
+          if [ -d "/usr/local/cargo/bin" ]; then
+            echo "/usr/local/cargo/bin" >> $GITHUB_PATH
+            export PATH="/usr/local/cargo/bin:$PATH"
+          elif [ -d "$HOME/.cargo/bin" ]; then
+            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+            export PATH="$HOME/.cargo/bin:$PATH"
+          fi
 
-      - name: Install Rust (Stable)
-        if: ${{ matrix.download }}
+      - name: Install Rust
+        shell: bash
         run: |
+          # Install stable and set as default
           rustup default stable
-
-      - name: Setup rust target
-        run: rustup target add ${{ matrix.target }}
+          
+          # Add target from matrix
+          rustup target add ${{ matrix.target }}
+          
+          # Verify installation
+          rustc --version
+          cargo --version
 
       - name: Setup Cross-Compilation Tools
         if: contains(matrix.target, 'android')
