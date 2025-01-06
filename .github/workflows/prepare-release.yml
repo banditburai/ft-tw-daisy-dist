@@ -226,41 +226,16 @@ jobs:
     container: ${{ matrix.container }}
     timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download prepared Tailwind
-        uses: actions/download-artifact@v4
-        with:
-          name: tailwind-prepared
-          path: tailwindcss
-
-      # Add NDK setup for Android targets
-      - name: Setup Android NDK
-        if: contains(matrix.target, 'android')
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r25c
-          local-cache: true
-
-      - name: Set Android env vars
-        if: contains(matrix.target, 'android')
-        run: |
-          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang" >> $GITHUB_ENV
-          echo "CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi33-clang" >> $GITHUB_ENV
-          echo "AR_aarch64_linux_android=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> $GITHUB_ENV
-          echo "AR_armv7_linux_androideabi=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> $GITHUB_ENV
-
+      - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        if: ${{ matrix.container }}
-        with:
-          version: 8
 
       - name: Use Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
+      # Cargo already skips downloading dependencies if they already exist
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -272,6 +247,7 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      # Cache the `oxide` Rust build
       - name: Cache oxide build
         uses: actions/cache@v4
         with:
@@ -289,22 +265,37 @@ jobs:
 
       - name: Install Rust (Stable)
         if: ${{ matrix.download }}
-        run: rustup default stable
-
-      - name: Setup rust target
         run: |
           rustup default stable
-          rustup target add ${{ matrix.target }}
-          rustup show
+
+      - name: Setup rust target
+        run: rustup target add ${{ matrix.target }}
+
+      # Add our Android NDK steps here, after Rust setup but before dependencies
+      - name: Setup Android NDK
+        if: contains(matrix.target, 'android')
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+          add-to-path: true
+
+      - name: Configure Android NDK for Rust
+        if: contains(matrix.target, 'android')
+        run: |
+          export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
+          export PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+          mkdir -p .cargo
+          cat > .cargo/config.toml << EOF
+          [target.${{ matrix.target }}]
+          ar = "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          linker = "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang"
+          EOF
 
       - name: Install dependencies
-        run: |
-          which pnpm || npm install -g pnpm
-          pnpm install --ignore-scripts --filter=!./playgrounds/* --no-frozen-lockfile
+        run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
-      - name: Build crates/node release
-        working-directory: tailwindcss/crates/node
-        run: pnpm run build
+      - name: Build release
+        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
@@ -312,7 +303,7 @@ jobs:
       - name: Strip debug symbols # https://github.com/rust-lang/rust/issues/46034
         if: ${{ matrix.strip }}
         run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
-  
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
