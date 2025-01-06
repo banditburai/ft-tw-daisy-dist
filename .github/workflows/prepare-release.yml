@@ -331,7 +331,7 @@ jobs:
 
       - name: Build release
         shell: bash
-        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
+        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build -- --target ${{ matrix.target }}
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
