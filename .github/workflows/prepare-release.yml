@@ -389,7 +389,7 @@ jobs:
         run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
 
       - name: Debug build output
-        working-directory: tailwindcss
+        working-directory: tailwindcss/crates/node
         shell: bash
         run: |
           echo "Target: ${{ matrix.target }}"
@@ -409,7 +409,7 @@ jobs:
           fi
 
       - name: Strip debug symbols
-        working-directory: tailwindcss
+        working-directory: tailwindcss/crates/node
         if: ${{ matrix.strip }}
         run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
 
