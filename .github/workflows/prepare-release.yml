@@ -250,7 +250,6 @@ jobs:
 
       - name: Setup Android env
         if: contains(matrix.target, 'android')
-        working-directory: tailwindcss
         shell: bash
         run: |
           # Install Android target
@@ -273,16 +272,17 @@ jobs:
             echo "CXX=$CXX"
           } >> $GITHUB_ENV
 
-          # Add Android target to existing config
+          # Create directory structure and add Android target to config
+          mkdir -p tailwindcss/crates/node/.cargo
           echo "
           [target.armv7-linux-androideabi]
-          linker = \"$CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER\"" >> crates/node/.cargo/config
+          linker = \"$CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER\"" >> tailwindcss/crates/node/.cargo/config
 
           # Verify environment
           echo "Checking environment setup:"
           echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
           ls -l $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/
-          cat crates/node/.cargo/config
+          cat tailwindcss/crates/node/.cargo/config
 
       - name: Setup rust target
         shell: bash
