@@ -245,10 +245,14 @@ jobs:
 
       - name: Install Rust
         if: ${{ !matrix.container || matrix.download }}
-        run: rustup default stable
+        run: |
+          rustup default stable
+          source "$HOME/.cargo/env"
 
       - name: Setup rust target
-        run: rustup target add ${{ matrix.target }}
+        run: |
+          source "$HOME/.cargo/env"
+          rustup target add ${{ matrix.target }}
       
       - name: Setup Android NDK
         if: contains(matrix.target, 'android')
@@ -304,7 +308,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.target }}
-          path: tailwindcss/${{ env.OXIDE_LOCATION }}/*.node
+          path: ${{ env.OXIDE_LOCATION }}/*.node
 
   release:
     runs-on: macos-14
