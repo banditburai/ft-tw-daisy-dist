@@ -291,6 +291,7 @@ jobs:
       - name: Configure target toolchain
         working-directory: tailwindcss/crates/node
         run: |
+          mkdir -p .cargo
           if [[ "${{ matrix.target }}" == *"android"* ]]; then
             # Android configuration
             export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
