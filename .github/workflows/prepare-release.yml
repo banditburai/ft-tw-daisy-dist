@@ -174,13 +174,13 @@ jobs:
           - os: windows-latest
             target: aarch64-pc-windows-msvc
           # macOS
-          - os: macos-latest
+          - os: macos-13
             target: x86_64-apple-darwin
-            strip: strip -x # Must use -x on macOS. This produces larger results on linux.
-          - os: macos-latest
+            strip: strip -x
+          - os: macos-14
             target: aarch64-apple-darwin
             page-size: 14
-            strip: strip -x # Must use -x on macOS. This produces larger results on linux.
+            strip: strip -x
           # Android
           - os: ubuntu-latest
             target: aarch64-linux-android
@@ -296,6 +296,10 @@ jobs:
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
+          CARGO_BUILD_TARGET: ${{ matrix.target }}
+          NAPI_BUILD_PLATFORM: ${{ matrix.target }}
+          # Tell napi to skip platform checks
+          SKIP_PLATFORM_CHECK: true
 
       - name: Debug build output
         working-directory: tailwindcss
