@@ -276,12 +276,13 @@ jobs:
           ls -la /usr/local/bin/cargo || echo "No cargo in /usr/local/bin"
           ls -la $HOME/.cargo/bin/cargo || echo "No cargo in ~/.cargo/bin"
 
-      # Then ensure Rust toolchain is properly set up
+      # First ensure Rust toolchain is properly set up
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: ${{ matrix.target }}
           override: true
+          default: false
 
       - name: Setup Rust PATH
         shell: bash
@@ -295,15 +296,6 @@ jobs:
             export PATH="$HOME/.cargo/bin:$PATH"
           fi
 
-      - name: Install Rust
-        shell: bash
-        run: |
-          # Install stable and set as default
-          rustup default stable
-          
-          # Add target from matrix
-          rustup target add ${{ matrix.target }}
-          
           # Verify installation
           rustc --version
           cargo --version
