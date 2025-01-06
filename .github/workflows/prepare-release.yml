@@ -290,6 +290,7 @@ jobs:
       # Configure toolchains for different targets
       - name: Configure target toolchain
         working-directory: tailwindcss/crates/node
+        shell: bash
         run: |
           mkdir -p .cargo
           if [[ "${{ matrix.target }}" == *"android"* ]]; then
