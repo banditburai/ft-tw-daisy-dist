@@ -269,8 +269,12 @@ jobs:
       - name: Install Rust and targets
         shell: bash
         run: |
-          # Add cargo to PATH
-          source "$HOME/.cargo/env"
+          # Add cargo to PATH - handle both container and non-container environments
+          if [ -f "/usr/local/cargo/env" ]; then
+            source "/usr/local/cargo/env"
+          elif [ -f "$HOME/.cargo/env" ]; then
+            source "$HOME/.cargo/env"
+          fi
           
           # Install latest stable
           rustup toolchain install stable --profile minimal
