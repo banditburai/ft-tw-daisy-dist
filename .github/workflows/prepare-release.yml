@@ -270,11 +270,10 @@ jobs:
             echo "AR=$AR"
             echo "CC=$CC"
             echo "CXX=$CXX"
-            echo "RUST_TARGET=armv7-linux-androideabi"
           } >> $GITHUB_ENV
 
-          # Create .cargo/config.toml
-          mkdir -p .cargo
+          # Create .cargo/config.toml in the tailwindcss directory
+          cd tailwindcss          
           cat > .cargo/config.toml << EOF
           [target.armv7-linux-androideabi]
           ar = "$AR"
@@ -324,6 +323,7 @@ jobs:
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
+          NAPI_CLI_TARGET: ${{ matrix.target }}
 
       - name: Debug build output
         working-directory: tailwindcss
