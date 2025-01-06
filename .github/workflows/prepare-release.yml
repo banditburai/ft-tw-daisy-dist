@@ -333,7 +333,7 @@ jobs:
         working-directory: ${{ env.OXIDE_LOCATION }}
         shell: bash
         if: ${{ !contains(matrix.target, 'musl') }}
-        run: napi build --platform ${{ matrix.target }} --release --no-const-enum
+        run: pnpm napi build --platform ${{ matrix.target }} --release --no-const-enum
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
@@ -342,7 +342,7 @@ jobs:
         working-directory: ${{ env.OXIDE_LOCATION }}
         shell: bash
         if: ${{ contains(matrix.target, 'musl') }}
-        run: napi build --platform ${{ matrix.target }} --release --no-const-enum
+        run: pnpm napi build --platform ${{ matrix.target }} --release --no-const-enum
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
