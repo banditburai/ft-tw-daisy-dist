@@ -326,6 +326,15 @@ jobs:
           NODE_ABI: musl
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
+      - name: Debug build output
+        shell: bash
+        run: |
+          echo "Target: ${{ matrix.target }}"
+          echo "Files in node directory:"
+          ls -la ${{ env.OXIDE_LOCATION }}/*.node
+          echo "File information:"
+          file ${{ env.OXIDE_LOCATION }}/*.node
+
       - name: Strip debug symbols
         if: ${{ matrix.strip }}
         run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
