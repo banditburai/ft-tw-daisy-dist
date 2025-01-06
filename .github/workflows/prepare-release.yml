@@ -14,7 +14,7 @@ permissions:
 env:
   APP_NAME: tailwindcss-oxide
   NODE_VERSION: 20
-  OXIDE_LOCATION: tailwindcss/crates/node
+  OXIDE_LOCATION: ./crates/node
 
 jobs:
   prepare:
@@ -45,14 +45,18 @@ jobs:
             "workspaces": [
               "crates/node",
               "crates/node/npm/*",
-              "packages/*"
+              "packages/*",
+              "playgrounds/*",
+              "integrations"
             ]
           }' > package.json
 
           echo 'packages:
             - "crates/node"
             - "crates/node/npm/*"
-            - "packages/*"' > pnpm-workspace.yaml
+            - "packages/*"
+            - "playgrounds/*"
+            - "integrations"' > pnpm-workspace.yaml
 
           # Replace catalog: references
           node -e '
@@ -283,7 +287,8 @@ jobs:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
-      - name: Debug build output        
+      - name: Debug build output
+        working-directory: tailwindcss
         shell: bash
         run: |
           echo "Target: ${{ matrix.target }}"
