@@ -245,11 +245,13 @@ jobs:
 
       - name: Install Rust
         if: ${{ !matrix.container || matrix.download }}
+        shell: bash
         run: |
           rustup default stable
           source "$HOME/.cargo/env"
 
       - name: Setup rust target
+        shell: bash
         run: |
           source "$HOME/.cargo/env"
           rustup target add ${{ matrix.target }}
