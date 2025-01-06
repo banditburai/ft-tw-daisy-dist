@@ -247,6 +247,7 @@ jobs:
         if: ${{ !matrix.container || matrix.download }}
         run: |
           rustup default stable
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Setup rust target
         working-directory: tailwindcss
