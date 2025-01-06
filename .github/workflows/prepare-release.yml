@@ -264,12 +264,6 @@ jobs:
       - name: Install dependencies
         working-directory: tailwindcss
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
-  
-      # Add cross-compilation tools first
-      - name: Install cross-compilation dependencies
-        if: contains(matrix.target, 'linux-musl')
-        run: |
-          apk add --no-cache zig musl-dev gcc
 
       # Keep existing Rust installation step unchanged
       - name: Install Rust and targets
@@ -341,8 +335,29 @@ jobs:
           # Verify NDK setup
           ls -la $ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/
 
+      - name: Setup Cross-Compilation Tools
+        if: contains(matrix.target, 'linux-musl')
+        working-directory: tailwindcss/crates/node
+        shell: bash
+        run: |
+          # Install required tools
+          apk add --no-cache zig musl-dev gcc
+          
+          # Create cargo config in the correct location
+          mkdir -p .cargo
+          cat > .cargo/config.toml << EOF
+          [target.aarch64-unknown-linux-musl]
+          linker = "zig cc -target aarch64-linux-musl"
+          rustflags = ["-C", "target-feature=+crt-static"]
+
+          [target.x86_64-unknown-linux-musl]
+          linker = "zig cc -target x86_64-linux-musl"
+          rustflags = ["-C", "target-feature=+crt-static"]
+          EOF
+
       - name: Build release
         working-directory: tailwindcss
+        shell: bash
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
