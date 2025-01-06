@@ -302,20 +302,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
-      # Add this before the build step for musl targets
-      - name: Configure musl target
-        if: contains(matrix.target, 'musl')
-        run: |
-          rustup target add aarch64-unknown-linux-musl
-          mkdir -p .cargo
-          echo '[target.aarch64-unknown-linux-musl]
-          linker = "aarch64-linux-musl-gcc"' > .cargo/config.toml
-
       - name: Build release
-        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
+        run: |
+          # Set up cargo config for musl targets only
+          if [[ "${{ matrix.target }}" == *"musl"* ]]; then
+            mkdir -p .cargo
+            echo '[build]
+            target = "${{ matrix.target }}"
+            
+            [target.${{ matrix.target }}]
+            linker = "aarch64-linux-musl-gcc"' > .cargo/config.toml
+          fi
+          
+          # Run the build
+          pnpm run --filter ${{ env.OXIDE_LOCATION }} build
         env:
           RUST_TARGET: ${{ matrix.target }}
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
+          # Add these to ensure Node knows we want aarch64
+          npm_config_arch: arm64
+          npm_config_platform: linux
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
       - name: Strip debug symbols
