@@ -292,7 +292,7 @@ jobs:
         run: |
           mkdir -p .cargo
           if [[ "${{ matrix.target }}" == *"android"* ]]; then
-            # Android configuration (unchanged)
+            # Android configuration
             export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
             export PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
             cat > .cargo/config.toml << EOF
@@ -306,6 +306,21 @@ jobs:
             [target.${{ matrix.target }}]
             linker = "${{ contains(matrix.target, 'aarch64') && 'aarch64-linux-musl-gcc' || 'x86_64-linux-musl-gcc' }}"
             rustflags = ["-C", "target-feature=-crt-static"]
+            EOF
+          elif [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
+            cat > .cargo/config.toml << EOF
+            [target.${{ matrix.target }}]
+            linker = "aarch64-linux-gnu-gcc"
+            EOF
+          elif [[ "${{ matrix.target }}" == "armv7-unknown-linux-gnueabihf" ]]; then
+            cat > .cargo/config.toml << EOF
+            [target.${{ matrix.target }}]
+            linker = "arm-linux-gnueabihf-gcc"
+            EOF
+          else
+            # Default configuration for other targets (macOS, Windows, etc.)
+            cat > .cargo/config.toml << EOF
+            [target.${{ matrix.target }}]
             EOF
           fi
 
