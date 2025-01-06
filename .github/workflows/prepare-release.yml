@@ -320,11 +320,12 @@ jobs:
 
       - name: Build release        
         working-directory: tailwindcss
-        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build -- --target ${{ matrix.target }} --platform --release --no-const-enum
+        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
         env:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
           NAPI_CLI_TARGET: ${{ matrix.target }}
+          CARGO_BUILD_TARGET: ${{ matrix.target }}
 
       - name: Debug build output
         working-directory: tailwindcss
