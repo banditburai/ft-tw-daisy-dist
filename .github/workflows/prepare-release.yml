@@ -266,43 +266,13 @@ jobs:
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
       # Keep existing Rust installation step unchanged
-      - name: Setup Rust PATH
-        shell: bash
+      - name: Install Rust (Stable)
+        if: ${{ matrix.download }}
         run: |
-          # Add cargo to PATH - handle both container and non-container environments
-          if [ -d "/usr/local/cargo/bin" ]; then
-            echo "/usr/local/cargo/bin" >> $GITHUB_PATH
-            export PATH="/usr/local/cargo/bin:$PATH"
-          elif [ -d "$HOME/.cargo/bin" ]; then
-            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-            export PATH="$HOME/.cargo/bin:$PATH"
-          fi
-
-      - name: Install Rust and targets
-        shell: bash
-        run: |
-          # Ensure cargo is in PATH for this step
-          if [ -d "/usr/local/cargo/bin" ]; then
-            export PATH="/usr/local/cargo/bin:$PATH"
-          elif [ -d "$HOME/.cargo/bin" ]; then
-            export PATH="$HOME/.cargo/bin:$PATH"
-          fi
-          
-          # Install latest stable
-          rustup toolchain install stable --profile minimal
-          
-          # Add target from matrix
-          rustup target add ${{ matrix.target }}
-          
-          rustup component add rust-src
-          
-          # Set as default toolchain
           rustup default stable
-          
-          # Verify installation
-          rustup show
-          rustc --version
-          cargo --version
+
+      - name: Setup rust target
+        run: rustup target add ${{ matrix.target }}
 
       - name: Setup Cross-Compilation Tools
         if: contains(matrix.target, 'android')
