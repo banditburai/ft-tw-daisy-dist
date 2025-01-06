@@ -312,7 +312,7 @@ jobs:
             target = "${{ matrix.target }}"
             
             [target.${{ matrix.target }}]
-            linker = "aarch64-linux-musl-gcc"' > .cargo/config.toml
+            linker = "${{ contains(matrix.target, 'aarch64') && 'aarch64-linux-musl-gcc' || 'gcc' }}"' > .cargo/config.toml
           fi
           
           # Run the build
@@ -320,8 +320,7 @@ jobs:
         env:
           RUST_TARGET: ${{ matrix.target }}
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
-          # Add these to ensure Node knows we want aarch64
-          npm_config_arch: arm64
+          npm_config_arch: ${{ contains(matrix.target, 'aarch64') && 'arm64' || 'x64' }}
           npm_config_platform: linux
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
