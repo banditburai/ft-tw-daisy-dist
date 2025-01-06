@@ -262,8 +262,10 @@ jobs:
         if: contains(matrix.target, 'android')
         shell: bash
         run: |
-          rustup target add ${{ matrix.target }}
+          # Install Android target
+          rustup target add armv7-linux-androideabi
           rustup target list --installed
+          rustup show
 
           # Export Android environment variables
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
@@ -272,7 +274,12 @@ jobs:
           echo "CC=${{ matrix.android_config.cc }}" >> $GITHUB_ENV
           echo "CXX=${{ matrix.android_config.cxx }}" >> $GITHUB_ENV
 
+          # Debug info
+          echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
+          ls -l $ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/
+
       - name: Setup rust target
+        if: ! contains(matrix.target, 'android')
         shell: bash
         run: |
           rustup target add ${{ matrix.target }}
@@ -302,6 +309,9 @@ jobs:
       - name: Build release        
         working-directory: tailwindcss
         run: |
+          echo "Installed Rust targets:"
+          rustup target list --installed
+          
           if [[ "${{ matrix.target }}" == *"android"* ]]; then
             cargo build --release --target ${{ matrix.target }}
             pnpm run --filter ${{ env.OXIDE_LOCATION }} build
