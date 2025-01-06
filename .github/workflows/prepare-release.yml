@@ -287,43 +287,36 @@ jobs:
           ndk-version: r25c
           add-to-path: true
 
-      - name: Configure Android NDK for Rust
-        if: contains(matrix.target, 'android')
+      # Configure toolchains for different targets
+      - name: Configure target toolchain
         run: |
-          export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
-          export PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
           mkdir -p .cargo
-          cat > .cargo/config.toml << EOF
-          [target.${{ matrix.target }}]
-          ar = "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-          linker = "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang"
-          EOF
+          if [[ "${{ matrix.target }}" == *"android"* ]]; then
+            # Android configuration (unchanged)
+            export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
+            export PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+            cat > .cargo/config.toml << EOF
+            [target.${{ matrix.target }}]
+            ar = "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+            linker = "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang"
+            EOF
+          elif [[ "${{ matrix.target }}" == *"musl"* ]]; then
+            # Musl configuration
+            cat > .cargo/config.toml << EOF
+            [target.${{ matrix.target }}]
+            linker = "${{ contains(matrix.target, 'aarch64') && 'aarch64-linux-musl-gcc' || 'x86_64-linux-musl-gcc' }}"
+            rustflags = ["-C", "target-feature=-crt-static"]
+            EOF
+          fi
 
       - name: Install dependencies
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
       - name: Build release
         shell: bash
-        run: |
-          # Set up cargo config for musl targets only
-          if [[ "${{ matrix.target }}" == *"musl"* ]]; then
-            mkdir -p .cargo
-            echo '[build]
-            target = "${{ matrix.target }}"
-            
-            [target.${{ matrix.target }}]
-            linker = "${{ contains(matrix.target, 'aarch64') && 'aarch64-linux-musl-gcc' || 'gcc' }}"' > .cargo/config.toml
-          fi
-          
-          # Run the build
-          pnpm run --filter ${{ env.OXIDE_LOCATION }} build
+        run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
         env:
           RUST_TARGET: ${{ matrix.target }}
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: ${{ contains(matrix.target, 'aarch64') && 'aarch64-linux-musl-gcc' || '' }}
-          npm_config_arch: ${{ contains(matrix.target, 'aarch64') && 'arm64' || 'x64' }}
-          npm_config_platform: ${{ contains(matrix.target, 'musl') && 'linux' || '' }}
-          npm_config_libc: ${{ contains(matrix.target, 'musl') && 'musl' || '' }}
-          NODE_ABI: ${{ contains(matrix.target, 'musl') && 'musl' || '' }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
       - name: Debug build output
