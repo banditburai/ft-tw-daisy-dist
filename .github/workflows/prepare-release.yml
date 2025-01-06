@@ -234,8 +234,7 @@ jobs:
       - name: Use Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          node-version: ${{ env.NODE_VERSION }}          
 
       # Cargo already skips downloading dependencies if they already exist
       - name: Cache cargo
