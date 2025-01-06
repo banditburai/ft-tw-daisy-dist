@@ -302,29 +302,33 @@ jobs:
       - name: Install dependencies
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
-      - name: Build release
+      - name: Build
         shell: bash
+        env:
+          APP_NAME: tailwindcss-oxide
+          NODE_VERSION: 20
+          OXIDE_LOCATION: tailwindcss/crates/node
+          RUST_TARGET: ${{ contains(matrix.target, 'aarch64-unknown-linux-musl') && 'aarch64-unknown-linux-musl' || '' }}
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: ${{ contains(matrix.target, 'aarch64-unknown-linux-musl') && 'aarch64-linux-musl-gcc' || '' }}
+          npm_config_arch: ${{ contains(matrix.target, 'aarch64-unknown-linux-musl') && 'arm64' || '' }}
+          npm_config_platform: ${{ contains(matrix.target, 'aarch64-unknown-linux-musl') && 'linux' || '' }}
+          npm_config_libc: ${{ contains(matrix.target, 'aarch64-unknown-linux-musl') && 'musl' || '' }}
+          NODE_ABI: ${{ contains(matrix.target, 'aarch64-unknown-linux-musl') && 'musl' || '' }}
+          JEMALLOC_SYS_WITH_LG_PAGE: ${{ contains(matrix.target, 'aarch64-unknown-linux-musl') && '' || '' }}
         run: |
           # Set up cargo config for musl targets only
           if [[ "${{ matrix.target }}" == *"musl"* ]]; then
             mkdir -p .cargo
-            echo '[build]
-            target = "${{ matrix.target }}"
-            
-            [target.${{ matrix.target }}]
-            linker = "${{ contains(matrix.target, 'aarch64') && 'aarch64-linux-musl-gcc' || 'gcc' }}"' > .cargo/config.toml
+            echo '[target.aarch64-unknown-linux-musl]
+            linker = "aarch64-linux-musl-gcc"
+            rustflags = ["-C", "target-feature=-crt-static"]' > .cargo/config.toml
+
+            # Run the build with explicit target for musl
+            cargo build --release --target aarch64-unknown-linux-musl
+          else
+            # Default build for other targets
+            cargo build --release
           fi
-          
-          # Run the build
-          pnpm run --filter ${{ env.OXIDE_LOCATION }} build
-        env:
-          RUST_TARGET: ${{ matrix.target }}
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
-          npm_config_arch: ${{ contains(matrix.target, 'aarch64') && 'arm64' || 'x64' }}
-          npm_config_platform: linux
-          npm_config_libc: musl
-          NODE_ABI: musl
-          JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
       - name: Debug build output
         shell: bash
