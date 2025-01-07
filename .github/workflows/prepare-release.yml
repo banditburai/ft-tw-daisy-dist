@@ -292,15 +292,30 @@ jobs:
             fi
           fi
 
-      # Then install the toolchain
-      - name: Install Rust (Stable)
+      # For non-container builds, ensure rustup is available
+      - name: Install rustup
         if: ${{ !matrix.container }}
+        shell: bash
         run: |
-          rustup default stable
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # Windows installation
+            curl -sSf -o rustup-init.exe https://win.rustup.rs
+            ./rustup-init.exe -y
+          else
+            # Unix-based installation (Linux/macOS)
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            source "$HOME/.cargo/env"
+          fi
 
-      - name: Setup rust target
-        run: rustup target add ${{ matrix.target }}
-
+      # Then use the same toolchain action for all builds
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+          default: true
+          profile: minimal
+          components: rustc, cargo, rust-std
           
       # Finally verify the installation
       - name: Verify Rust installation
