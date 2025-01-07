@@ -293,12 +293,14 @@ jobs:
           fi
 
       # Then install the toolchain
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
-          default: false
+      - name: Install Rust (Stable)
+        if: ${{ !matrix.container }}
+        run: |
+          rustup default stable
+
+      - name: Setup rust target
+        run: rustup target add ${{ matrix.target }}
+
           
       # Finally verify the installation
       - name: Verify Rust installation
