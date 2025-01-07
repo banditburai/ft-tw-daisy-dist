@@ -266,30 +266,7 @@ jobs:
         working-directory: tailwindcss
         run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
-      # First, debug to see what we're working with
-      - name: Debug Rust installation
-        shell: bash
-        run: |
-          echo "PATH: $PATH"
-          which rustc || echo "rustc not found"
-          which cargo || echo "cargo not found"
-          
-          # Check cargo location based on OS
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            ls -la "$USERPROFILE/.cargo/bin/cargo.exe" || echo "No cargo in Windows user directory"
-          else
-            ls -la "/usr/local/bin/cargo" || echo "No cargo in /usr/local/bin"
-            ls -la "$HOME/.cargo/bin/cargo" || echo "No cargo in ~/.cargo/bin"
-          fi
-
-      # First ensure Rust toolchain is properly set up
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
-          default: false
-
+      # First set up the PATH
       - name: Setup Rust PATH
         shell: bash
         run: |
@@ -314,8 +291,18 @@ jobs:
               export PATH="$HOME/.cargo/bin:$PATH"
             fi
           fi
+
+      # Then install the toolchain
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+          default: false
           
-          # Verify installation
+      # Finally verify the installation
+      - name: Verify Rust installation
+        run: |
           rustc --version
           cargo --version
 
@@ -369,18 +356,23 @@ jobs:
         run: |
           # Install required tools
           apk add --no-cache zig musl-dev gcc
-          
+
           # Create cargo config in the correct location
           mkdir -p .cargo
           cat > .cargo/config.toml << EOF
           [target.aarch64-unknown-linux-musl]
-          linker = "zig cc -target aarch64-linux-musl"
-          rustflags = ["-C", "target-feature=+crt-static"]
+          linker = "zig"
+          ar = "zig"
+          rustflags = ["-C", "linker-flavor=zig", "-C", "target-cpu=generic"]
 
           [target.x86_64-unknown-linux-musl]
-          linker = "zig cc -target x86_64-linux-musl"
-          rustflags = ["-C", "target-feature=+crt-static"]
+          linker = "zig"
+          ar = "zig"
+          rustflags = ["-C", "linker-flavor=zig", "-C", "target-cpu=generic"]
           EOF
+
+          # Verify toolchain
+          zig version
 
       - name: Build
         working-directory: tailwindcss
