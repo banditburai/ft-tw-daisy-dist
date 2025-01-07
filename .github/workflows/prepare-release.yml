@@ -383,6 +383,7 @@ jobs:
           EOF
 
       - name: Build
+        working-directory: tailwindcss
         env:
           SKIP_PLATFORM_CHECK: true
           CARGO_BUILD_TARGET: ${{ matrix.target }}
@@ -393,23 +394,29 @@ jobs:
         shell: bash
         run: |
           echo "Target: ${{ matrix.target }}"
+          echo "Current directory structure:"
+          pwd
+          ls -la
+          echo "Node directory structure:"
+          ls -la ${{ env.OXIDE_LOCATION }} || echo "Directory not found"
+          
           echo "Files in node directory:"
           if [ "$RUNNER_OS" = "Windows" ]; then
-            dir ${{ env.OXIDE_LOCATION }}\*.node
+            dir ${{ env.OXIDE_LOCATION }}\*.node 2>nul || echo "No .node files found"
           else
-            ls -la ${{ env.OXIDE_LOCATION }}/*.node
+            ls -la ${{ env.OXIDE_LOCATION }}/*.node 2>/dev/null || echo "No .node files found"
           fi
           
           echo "File information:"
           if [ "$RUNNER_OS" = "Windows" ]; then
             # Windows doesn't have the 'file' command, but we can show basic info
-            stat ${{ env.OXIDE_LOCATION }}\*.node || echo "No .node files found"
+            stat ${{ env.OXIDE_LOCATION }}\*.node 2>nul || echo "No .node files found"
           else
-            file ${{ env.OXIDE_LOCATION }}/*.node || echo "No .node files found"
+            file ${{ env.OXIDE_LOCATION }}/*.node 2>/dev/null || echo "No .node files found"
           fi
 
       - name: Strip debug symbols
-        working-directory: tailwindcss/crates/node
+        working-directory: tailwindcss
         if: ${{ matrix.strip }}
         run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
 
